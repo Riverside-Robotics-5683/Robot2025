@@ -9,3 +9,10 @@ build/
 
 # Build constants file for AdvantageKit.
 src/main/java/ravenrobotics/robot/BuildConstants.java
+
+# Simulation files.
+networktables.json
+simgui-ds.json
+simgui-window.json
+simgui.json
+
