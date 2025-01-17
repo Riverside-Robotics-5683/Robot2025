@@ -1,7 +1,6 @@
 package ravenrobotics.robot;
 
 import com.ctre.phoenix6.configs.Pigeon2Configuration;
-import com.ctre.phoenix6.configs.Pigeon2FeaturesConfigs;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
@@ -11,9 +10,11 @@ import ravenrobotics.robot.Constants.KinematicsConstants;
 import ravenrobotics.robot.Constants.SwerveModuleConstants;
 
 public class Configs {
+  // Configs for swerve motors.
   public static SparkFlexConfig swerveDriveConfig = new SparkFlexConfig();
   public static SparkMaxConfig swerveAngleConfig = new SparkMaxConfig();
 
+  // Config for the IMU.
   public static Pigeon2Configuration imuConfig = new Pigeon2Configuration();
 
   static {

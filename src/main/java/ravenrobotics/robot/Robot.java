@@ -21,9 +21,10 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 public class Robot extends LoggedRobot {
 
   @SuppressWarnings("unused")
-  private final PowerDistribution pdp; // I added the unused warning suppression to fix a resource leakage warning on
+  private PowerDistribution pdp; // I added the unused warning suppression to fix a resource leakage warning on
                                  // line 33 if it wasn't being created in a variable.
 
+  @SuppressWarnings("unused")
   private final RobotContainer robotContainer;
 
   /**
