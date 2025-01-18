@@ -20,8 +20,9 @@ import ravenrobotics.robot.Constants.SwerveModuleKeys;
  */
 public class DriveSubsystem extends SubsystemBase {
   private final SwerveModule[] swerveModules = new SwerveModule[4]; // The swerve modules for controlling motors.
-  private SwerveModuleInputsAutoLogged[] swerveInputs = new SwerveModuleInputsAutoLogged[4]; // The swerve module inputs
-                                                                                             // for AdvantageKit.
+  // Swerve module inputs for AdvantageKit.
+  private SwerveModuleInputsAutoLogged[] swerveModuleInputs = new SwerveModuleInputsAutoLogged[4];
+
   private final IMU imu = new IMU(); // The IMU for getting heading and orientation.
   private IMUInputsAutoLogged imuInputs = new IMUInputsAutoLogged(); // The IMU inputs for AdvantageKit.
 
@@ -116,12 +117,12 @@ public class DriveSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     for (int i = 0; i < 4; i++) { // For each swerve module:
-      swerveModules[i].updateInputs(swerveInputs[i]); // Update the inputs for the module.
+      swerveModules[i].updateInputs(swerveModuleInputs[i]); // Update the inputs for the module.
       // Process the inputs for the module.
-      Logger.processInputs("Drive/" + SwerveModuleKeys.fromInt(i) + "Module", swerveInputs[i]);
+      Logger.processInputs("Drive/" + SwerveModuleKeys.fromInt(i) + "Module", swerveModuleInputs[i]);
 
-      swerveModulePositions[i] = swerveInputs[i].modulePosition; // Update the module's position.
-      swerveModuleStates[i] = swerveInputs[i].currentState; // Update the module's state.
+      swerveModulePositions[i] = swerveModuleInputs[i].modulePosition; // Update the module's position.
+      swerveModuleStates[i] = swerveModuleInputs[i].currentState; // Update the module's state.
     }
 
     imu.updateInputs(imuInputs); // Update the IMU inputs.
@@ -129,5 +130,19 @@ public class DriveSubsystem extends SubsystemBase {
 
     // Update the pose estimator with the updated inputs.
     estimatedPose.update(imuInputs.imuOrientation, swerveModulePositions);
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    for (int i = 0; i < 4; i++) {
+      swerveModules[i].updateSimDevices(); // Update module simulations.
+      swerveModules[i].updateInputs(swerveModuleInputs[i]); // Process simulated inputs.
+      
+      //Process simulated inputs.
+      Logger.processInputs("Drive/IMU" + SwerveModuleKeys.fromInt(i) + "Module", swerveModuleInputs[i]);
+      
+      swerveModulePositions[i] = swerveModuleInputs[i].modulePosition;
+      swerveModuleStates[i] = swerveModuleInputs[i].currentState;
+    }
   }
 }

@@ -181,10 +181,8 @@ public class SwerveModule {
 
   /**
    * Update the simulation devices.
-   *
-   * @return The simulated power draw.
    */
-  public double[] updateSimDevices() {
+  public void updateSimDevices() {
     // Throw an error if any of the sim devices haven't been initialized.
     if (driveSim == null || angleSim == null || drivePhysicsSim == null || anglePhysicsSim == null) {
       throw new IllegalStateException("Must be called in simulation.");
@@ -206,10 +204,5 @@ public class SwerveModule {
         voltageIn, 0.02);
     angleSim.iterate(Units.radiansPerSecondToRotationsPerMinute(anglePhysicsSim.getAngularVelocityRadPerSec()),
         voltageIn, 0.02);
-
-    return new double[] {
-        drivePhysicsSim.getCurrentDrawAmps(),
-        anglePhysicsSim.getCurrentDrawAmps()
-    };
   }
 }
