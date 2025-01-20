@@ -16,13 +16,16 @@ import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 
 /**
- * The main robot class for running a robot (outside of Main)
+ * The main robot class for running a robot (outside of Main).
  */
 public class Robot extends LoggedRobot {
 
   @SuppressWarnings("unused")
   private PowerDistribution pdp; // I added the unused warning suppression to fix a resource leakage warning on
                                  // line 33 if it wasn't being created in a variable.
+
+  @SuppressWarnings("unused")
+  private final RobotContainer robotContainer;
 
   /**
    * Creates an instance of the Robot class.
@@ -71,6 +74,8 @@ public class Robot extends LoggedRobot {
     }
 
     Logger.start(); // Start logging data.
+  
+    robotContainer = new RobotContainer(); //Initialize the RobotContainer to setup everything.
   }
 
   @Override
