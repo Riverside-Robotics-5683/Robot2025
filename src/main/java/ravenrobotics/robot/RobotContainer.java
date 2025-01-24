@@ -12,11 +12,17 @@ public class RobotContainer {
   // Drive command.
   private final DriveCommand driveCommand = new DriveCommand(
       DSConstants.DEFAULT_PROFILE,
-      () -> -driverController.getLeftY(), // Forward/backward.
-      () -> -driverController.getLeftX(), // Left/right.
-      () -> -driverController.getRightX()); // Rotation.
+      () -> driverController.getLeftY(), // Forward/backward.
+      () -> driverController.getLeftX(), // Left/right.
+      () -> driverController.getRightX()); // Rotation.
 
   public RobotContainer() {
     DriveSubsystem.getInstance().setDefaultCommand(driveCommand); // Set the default subsystem command for the DriveSubsystem.
+    
+    configBindings();
+  }
+
+  private void configBindings() {
+    driverController.back().onTrue(DriveSubsystem.getInstance().resetHeading());
   }
 }

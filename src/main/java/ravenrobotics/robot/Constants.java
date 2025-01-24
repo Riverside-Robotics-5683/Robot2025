@@ -14,9 +14,9 @@ public class Constants {
 
     public static final DriverProfile DEFAULT_PROFILE = new DriverProfile(
         "Default", // Profile name
-        0.04, // X-axis deadband.
-        0.04, // Y-axis deadband.
-        0.04, // Z-axis deadband.
+        0.05, // X-axis deadband.
+        0.05, // Y-axis deadband.
+        0.05, // Z-axis deadband.
         1.5, // X-axis acceleration.
         1.5, // Y-axis acceleration.
         1.0); // Z-axis acceleration.
@@ -27,20 +27,20 @@ public class Constants {
    */
   public static class SwerveModuleConstants {
     // Front Left
-    public static final int FL_DRIVE = 0; // Drive motor.
-    public static final int FL_ANGLE = 1; // Angle motor.
+    public static final int FL_DRIVE = 1; // Drive motor.
+    public static final int FL_ANGLE = 2; // Angle motor.
 
     // Front Right
-    public static final int FR_DRIVE = 2; // Drive motor.
-    public static final int FR_ANGLE = 3; // Angle motor.
+    public static final int FR_DRIVE = 3; // Drive motor.
+    public static final int FR_ANGLE = 4; // Angle motor.
 
     // Rear Left
-    public static final int RL_DRIVE = 4; // Drive motor.
-    public static final int RL_ANGLE = 5; // Angle motor.
+    public static final int RL_DRIVE = 5; // Drive motor.
+    public static final int RL_ANGLE = 6; // Angle motor.
 
     // Rear Right
-    public static final int RR_DRIVE = 6; // Drive motor.
-    public static final int RR_ANGLE = 7; // Angle motor.
+    public static final int RR_DRIVE = 7; // Drive motor.
+    public static final int RR_ANGLE = 8; // Angle motor.
 
     public static final int DRIVE_LIMIT = 40; // Drive motor current limit.
     public static final int ANGLE_LIMIT = 20; // Angle motor current limit.
@@ -98,7 +98,7 @@ public class Constants {
    * Constants for the IMU.
    */
   public static class IMUConstants {
-    public static final int IMU = 8;
+    public static final int IMU = 9;
   }
 
   /**
@@ -108,17 +108,25 @@ public class Constants {
     public static final double WHEEL_DIAMETER = Units.inchesToMeters(3); // Wheel diameter.
     public static final double WHEEL_CIRCUMFERENCE = WHEEL_DIAMETER * Math.PI; // Wheel circumference.
 
-    public static final double DRIVE_CONVERSION_FACTOR = (45.0 * 22) / (14 * 15); // Drive motor gear ratio.
+    public static final double DRIVE_GEAR_RATIO = (45.0 * 22.0) / (14.0 * 15.0); // Gear ratio between the drive motor
+                                                                                 // and the wheel.
+
+    public static final double DRIVE_CONVERSION_FACTOR = WHEEL_CIRCUMFERENCE / DRIVE_GEAR_RATIO; // Drive motor gear
+                                                                                                 // ratio.
     public static final double ANGLE_CONVERSION_FACTOR = Math.PI * 2; // Angle motor conversion factor.
 
-    //Drive wheel free speed (feedforwards).
-    public static final double DRIVE_FREE_WHEEL_SPEED = (6784 * WHEEL_CIRCUMFERENCE) / DRIVE_CONVERSION_FACTOR;
+    public static final double DRIVE_FREE_MOTOR_SPEED = 6784.0 / 60.0;
+
+    // Drive wheel free speed (feedforwards).
+    public static final double DRIVE_FREE_WHEEL_SPEED = (DRIVE_FREE_MOTOR_SPEED * WHEEL_CIRCUMFERENCE)
+        / DRIVE_GEAR_RATIO;
 
     // Robot length and width.
     public static final double TRACK_WIDTH = Units.inchesToMeters(27);
     public static final double WHEEL_BASE = Units.inchesToMeters(27);
 
-    // Swerve drive kinematics for converting between ChassisSpeeds and SwerveModuleStates.
+    // Swerve drive kinematics for converting between ChassisSpeeds and
+    // SwerveModuleStates.
     public static final SwerveDriveKinematics SWERVE_KINEMATICS = new SwerveDriveKinematics(
         new Translation2d(TRACK_WIDTH / 2.0, WHEEL_BASE / 2.0), // FL
         new Translation2d(TRACK_WIDTH / 2.0, -WHEEL_BASE / 2.0), // FR
@@ -128,5 +136,18 @@ public class Constants {
     public static final double DISCRETIZE_SECONDS = 0.02; // 2nd order kinematics
 
     public static final double MAX_MODULE_SPEED = Units.feetToMeters(16); // Max module speed
+  }
+
+  public static class ElevatorConstants {
+    public static final int ELEVATOR_LEFT = 9;
+    public static final int ELEVATOR_RIGHT = 10;
+
+    public static final int ELEAVTOR_LIMIT = 30;
+  }
+
+  public static class IntakeConstants {
+    public static final int FLIPPER = 11;
+    public static final int SLIDER = 12;
+    public static final int ROLLERS = 13;
   }
 }

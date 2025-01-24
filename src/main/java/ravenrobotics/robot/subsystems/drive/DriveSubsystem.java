@@ -8,6 +8,7 @@ import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator3d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
+import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -31,8 +32,7 @@ public class DriveSubsystem extends SubsystemBase {
 
   // Pose estimator combining drive odometry and vision measurements for more
   // accurate odometry.
-  private SwerveDrivePoseEstimator3d estimatedPose = new SwerveDrivePoseEstimator3d(
-      KinematicsConstants.SWERVE_KINEMATICS, imuInputs.imuOrientation, swerveModulePositions, new Pose3d());
+  private SwerveDrivePoseEstimator3d estimatedPose;
 
   private static DriveSubsystem instance; // The static instance for the getInstance method.
 
@@ -40,7 +40,17 @@ public class DriveSubsystem extends SubsystemBase {
     for (int i = 0; i < 4; i++) {
       // Create all of the swerve modules.
       swerveModules[i] = new SwerveModule(i);
+
+      swerveModulePositions[i] = new SwerveModulePosition();
+      swerveModuleStates[i] = new SwerveModuleState();
+
+      swerveModuleInputs[i] = new SwerveModuleInputsAutoLogged();
     }
+
+    imuInputs = new IMUInputsAutoLogged();
+
+    estimatedPose = new SwerveDrivePoseEstimator3d(SWERVE_KINEMATICS, imuInputs.imuOrientation, swerveModulePositions, new Pose3d());
+
   }
 
   /**
@@ -71,6 +81,8 @@ public class DriveSubsystem extends SubsystemBase {
 
     // Convert the target ChassisSpeeds to individual SwerveModuleStates.
     SwerveModuleState[] targetStates = SWERVE_KINEMATICS.toSwerveModuleStates(targetSpeeds);
+
+    SwerveDriveKinematics.desaturateWheelSpeeds(targetStates, KinematicsConstants.MAX_MODULE_SPEED);
 
     for (int i = 0; i < 4; i++) { // For each swerve module:
       // Log the given state for the module.
@@ -130,6 +142,8 @@ public class DriveSubsystem extends SubsystemBase {
 
     // Update the pose estimator with the updated inputs.
     estimatedPose.update(imuInputs.imuOrientation, swerveModulePositions);
+
+    Logger.recordOutput("Drive/Position", estimatedPose.getEstimatedPosition());
   }
 
   @Override

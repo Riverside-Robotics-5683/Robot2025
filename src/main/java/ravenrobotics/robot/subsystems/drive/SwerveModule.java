@@ -46,7 +46,7 @@ public class SwerveModule {
   private final SparkClosedLoopController driveController; // The Feedforward controller for the drive motor.
   private final SparkClosedLoopController angleController; // The PID controller for the drive motor.
 
-  private final double moduleOffset; // The module's offset around the chassis (used for modifying the angle motor
+  private final Rotation2d moduleOffset; // The module's offset around the chassis (used for modifying the angle motor
                                      // position value).
   private SwerveModuleState targetState; // The target state of the module.
 
@@ -60,22 +60,22 @@ public class SwerveModule {
       case 0: // Create the FL motors and offset.
         driveMotor = new SparkFlex(SwerveModuleConstants.FL_DRIVE, MotorType.kBrushless);
         angleMotor = new SparkMax(SwerveModuleConstants.FL_ANGLE, MotorType.kBrushless);
-        moduleOffset = SwerveModuleConstants.FL_OFFSET;
+        moduleOffset = Rotation2d.fromRadians(SwerveModuleConstants.FL_OFFSET);
         break;
       case 1: // Create the FR motors and offset.
         driveMotor = new SparkFlex(SwerveModuleConstants.FR_DRIVE, MotorType.kBrushless);
         angleMotor = new SparkMax(SwerveModuleConstants.FR_ANGLE, MotorType.kBrushless);
-        moduleOffset = SwerveModuleConstants.FR_OFFSET;
+        moduleOffset = Rotation2d.fromRadians(SwerveModuleConstants.FR_OFFSET);
         break;
       case 2: // Create the RL motors and offset.
         driveMotor = new SparkFlex(SwerveModuleConstants.RL_DRIVE, MotorType.kBrushless);
         angleMotor = new SparkMax(SwerveModuleConstants.RL_ANGLE, MotorType.kBrushless);
-        moduleOffset = SwerveModuleConstants.RL_OFFSET;
+        moduleOffset = Rotation2d.fromRadians(SwerveModuleConstants.RL_OFFSET);
         break;
       case 3: // Create the RR motors and offset.
         driveMotor = new SparkFlex(SwerveModuleConstants.RR_DRIVE, MotorType.kBrushless);
         angleMotor = new SparkMax(SwerveModuleConstants.RR_ANGLE, MotorType.kBrushless);
-        moduleOffset = SwerveModuleConstants.RR_OFFSET;
+        moduleOffset = Rotation2d.fromRadians(SwerveModuleConstants.RR_OFFSET);
         break;
       default: // Throw an error because no other modules exist.
         throw new IllegalArgumentException("ID must be in range 0-3.");
@@ -145,7 +145,7 @@ public class SwerveModule {
     // Set the correct angle from the module's offset.
     SwerveModuleState correctedState = new SwerveModuleState(
         state.speedMetersPerSecond,
-        state.angle.plus(Rotation2d.fromRadians(moduleOffset)));
+        state.angle.plus(moduleOffset));
 
     correctedState.optimize(new Rotation2d(angleEncoder.getPosition())); // Optimize the path of travel.
 
@@ -165,7 +165,7 @@ public class SwerveModule {
   public SwerveModuleState getModuleState() {
     return new SwerveModuleState(
         driveEncoder.getVelocity(), // Get the drive motor velocity.
-        Rotation2d.fromRadians(angleEncoder.getPosition() - moduleOffset)); // Get the corrected angle.
+        Rotation2d.fromRadians(angleEncoder.getPosition()).minus(moduleOffset)); // Get the corrected angle.
   }
 
   /**
@@ -176,7 +176,7 @@ public class SwerveModule {
   public SwerveModulePosition getModulePosition() {
     return new SwerveModulePosition(
         driveEncoder.getPosition(), // Get the drive motor position.
-        Rotation2d.fromRadians(angleEncoder.getPosition() - moduleOffset)); // Get the corrected angle.
+        Rotation2d.fromRadians(angleEncoder.getPosition()).minus(moduleOffset)); // Get the corrected angle.
   }
 
   /**
