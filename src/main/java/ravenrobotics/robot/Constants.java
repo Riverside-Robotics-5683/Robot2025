@@ -1,5 +1,10 @@
 package ravenrobotics.robot;
 
+import java.io.IOException;
+import java.text.ParseException;
+
+import com.pathplanner.lib.config.RobotConfig;
+
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.util.Units;
@@ -149,5 +154,18 @@ public class Constants {
     public static final int FLIPPER = 11;
     public static final int SLIDER = 12;
     public static final int ROLLERS = 13;
+  }
+
+  public static class AutoConstants {
+    public static RobotConfig ROBOT_CONFIG;
+    static {
+      try {
+        ROBOT_CONFIG = RobotConfig.fromGUISettings();
+      } catch (org.json.simple.parser.ParseException e) {
+        e.printStackTrace();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
   }
 }

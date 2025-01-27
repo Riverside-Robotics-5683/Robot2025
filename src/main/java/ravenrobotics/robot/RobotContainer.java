@@ -17,8 +17,10 @@ public class RobotContainer {
       () -> driverController.getRightX()); // Rotation.
 
   public RobotContainer() {
-    DriveSubsystem.getInstance().setDefaultCommand(driveCommand); // Set the default subsystem command for the DriveSubsystem.
-    
+    // Set the default command for the DriveSubsystem to the drive command.
+    DriveSubsystem.getInstance().setDefaultCommand(driveCommand);
+
+    // Configure controller bindings.
     configBindings();
   }
 
