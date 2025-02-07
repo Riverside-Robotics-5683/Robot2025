@@ -148,6 +148,7 @@ public class Constants {
     public static final int ELEVATOR_RIGHT = 10;
 
     public static final int ELEAVTOR_LIMIT = 30;
+    public static final double SPEED_LIMIT = 0;
   }
 
   public static class IntakeConstants {
