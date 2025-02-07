@@ -2,7 +2,7 @@ package ravenrobotics.robot.subsystems.elevator;
 
 import static ravenrobotics.robot.Configs.elevatorConfig;
 
-import com.revrobotics.RelativeEncoder;
+import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -22,7 +22,7 @@ public class ElevatorSubsystem extends SubsystemBase{
     private final SparkFlex leftMotor = new SparkFlex(ElevatorConstants.ELEVATOR_LEFT, MotorType.kBrushless);
     private final SparkFlex rightMotor = new SparkFlex(ElevatorConstants.ELEVATOR_RIGHT, MotorType.kBrushless);
 
-    private final RelativeEncoder leftEncoder;
+    private final AbsoluteEncoder leftEncoder;
     private final SparkClosedLoopController elevatorController;
 
     private static ElevatorSubsystem instance;
@@ -38,7 +38,7 @@ public class ElevatorSubsystem extends SubsystemBase{
 
     private ElevatorSubsystem(){
          //get encoder
-        leftEncoder = leftMotor.getEncoder();
+        leftEncoder = leftMotor.getAbsoluteEncoder();
         elevatorController = leftMotor.getClosedLoopController();
 
         //configuring motors
@@ -53,4 +53,54 @@ public class ElevatorSubsystem extends SubsystemBase{
     public void setPosition(double position){
         elevatorController.setReference(position, ControlType.kPosition);
     }
+
+    public enum ElevatorPosition{
+        CLOSED,
+        L1,
+        L2,
+        L3,
+        L4,
+        FEED
+
+        //setting the positions
+    }
+    public void setPosition (ElevatorPosition position){
+    
+        switch (position) {
+            case CLOSED:
+             setPosition(ElevatorPosition.CLOSED);
+            break;
+
+            case L1:
+             setPosition (ElevatorPosition.L1);
+            break;
+
+            case L2:
+             setPosition(ElevatorPosition.L2);
+            break;
+
+            case L3:
+             setPosition(ElevatorPosition.L3);
+            break;
+
+            case L4:
+             setPosition(ElevatorPosition.L4);
+            break;
+
+            case FEED:
+             setPosition(ElevatorPosition.FEED);
+            break;
+            default: 
+        }
+
+    }
+    
+    public boolean isElevatorPastLimit(){
+
+    return leftEncoder.getPosition() >=ElevatorConstants.SPEED_LIMIT;
+
+    //test if elevator is past limit, and add a limit
+    }
+
+//unc status
 }
