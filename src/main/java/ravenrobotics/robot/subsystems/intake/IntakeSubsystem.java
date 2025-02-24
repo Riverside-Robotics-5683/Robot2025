@@ -1,41 +1,54 @@
 package ravenrobotics.robot.subsystems.intake;
 
+import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkBase.PersistMode;
+import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
+import org.littletonrobotics.junction.Logger;
+import ravenrobotics.robot.Configs;
 import ravenrobotics.robot.Constants.IntakeConstants;
 
 public class IntakeSubsystem extends SubsystemBase {
 
     /** Motor controlling the flipper mechanism for intake angle adjustment */
-    private final SparkFlex flipperMotor = new SparkFlex(
-        IntakeConstants.FLIPPER,
+    private final SparkFlex topFlipperMotor = new SparkFlex(
+        IntakeConstants.FLIPPER_TOP,
         SparkFlex.MotorType.kBrushless
     );
-    /** Motor controlling the slider mechanism for intake extension/retraction */
-    private final SparkFlex sliderMotor = new SparkFlex(
-        IntakeConstants.SLIDER,
-        SparkFlex.MotorType.kBrushless
+
+    private final SparkFlex bottomFlipperMotor = new SparkFlex(
+        IntakeConstants.FLIPPER_BOTTOM,
+        MotorType.kBrushless
     );
+
+    private final RelativeEncoder topFlipperEncoder =
+        topFlipperMotor.getEncoder();
+    private final RelativeEncoder bottomFlipperEncoder =
+        bottomFlipperMotor.getEncoder();
+
     /** Motor controlling the rollers for intake/outtake */
-    private final SparkFlex rollerMotor = new SparkFlex(
+    private final SparkMax rollerMotor = new SparkMax(
         IntakeConstants.ROLLERS,
         SparkFlex.MotorType.kBrushless
     );
 
+    private final RelativeEncoder rollerEncoder = rollerMotor.getEncoder();
+
     /** Closed loop controller for the flipper motor */
     private final SparkClosedLoopController flipperController =
-        flipperMotor.getClosedLoopController();
+        topFlipperMotor.getClosedLoopController();
 
-    /** Closed loop controller for the slider motor */
-    private final SparkClosedLoopController sliderController =
-        sliderMotor.getClosedLoopController();
+    private IntakeInputsAutoLogged intakeInputs = new IntakeInputsAutoLogged();
 
-    /** Closed loop controller for the roller motor */
-    private final SparkClosedLoopController rollerController =
-        rollerMotor.getClosedLoopController();
+    private double targetPosition = 0.0;
 
     private static IntakeSubsystem instance;
 
@@ -51,6 +64,25 @@ public class IntakeSubsystem extends SubsystemBase {
         }
 
         return instance;
+    }
+
+    private IntakeSubsystem() {
+        topFlipperMotor.configure(
+            Configs.flipperConfig,
+            ResetMode.kResetSafeParameters,
+            PersistMode.kPersistParameters
+        );
+        bottomFlipperMotor.configure(
+            Configs.flipperConfig.follow(topFlipperMotor),
+            ResetMode.kResetSafeParameters,
+            PersistMode.kPersistParameters
+        );
+
+        rollerMotor.configure(
+            Configs.rollerConfig,
+            ResetMode.kResetSafeParameters,
+            PersistMode.kPersistParameters
+        );
     }
 
     /**
@@ -98,20 +130,12 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
-     * Sets the slider position.
-     *
-     * @param position The desired position setpoint
-     */
-    private void setSliderPosition(double position) {
-        sliderController.setReference(position, ControlType.kPosition);
-    }
-
-    /**
      * Sets the intake angle.
      *
      * @param position The desired angle setpoint
      */
     private void setIntakeAngle(double position) {
+        targetPosition = position;
         flipperController.setReference(position, ControlType.kPosition);
     }
 
@@ -124,37 +148,15 @@ public class IntakeSubsystem extends SubsystemBase {
         rollerMotor.set(power);
     }
 
-    /**
-     * Sets the position of the intake slider.
-     *
-     * @param position The desired slider position.
-     * @return The Command to be scheduled.
-     */
-    public Command setSliderPosition(IntakeSliderPosition position) {
-        switch (position) {
-            // For OPEN position, set to the open slider constant
-            case OPEN:
-                return this.runOnce(() ->
-                        setSliderPosition(IntakeConstants.INTAKE_SLIDER_OPEN)
-                    );
-            // For HALF_OPEN position, set to the half open slider constant
-            case HALF_OPEN:
-                return this.runOnce(() ->
-                        setSliderPosition(
-                            IntakeConstants.INTAKE_SLIDER_HALF_OPEN
-                        )
-                    );
-            // For CLOSED position, set to the closed slider constant
-            case CLOSED:
-                return this.runOnce(() ->
-                        setSliderPosition(IntakeConstants.INTAKE_SLIDER_CLOSED)
-                    );
-            // If no valid position specified, default to closed position
-            default:
-                return this.runOnce(() ->
-                        setSliderPosition(IntakeConstants.INTAKE_SLIDER_CLOSED)
-                    );
-        }
+    public boolean isCoralInIntake() {
+        return (
+            rollerMotor.getAppliedOutput() > 10 &&
+            rollerEncoder.getVelocity() < 800
+        );
+    }
+
+    public void setIntakePower(double power) {
+        topFlipperMotor.set(power);
     }
 
     /**
@@ -163,7 +165,7 @@ public class IntakeSubsystem extends SubsystemBase {
      * @param angle The desired angle position.
      * @return The Command to be scheduled.
      */
-    public Command setSliderPosition(IntakeAngle angle) {
+    public Command setIntakeAngle(IntakeAngle angle) {
         // Switch based on the provided angle enum to set the appropriate intake angle
         switch (angle) {
             // For L1 position, set to the L1 angle constant
@@ -206,6 +208,47 @@ public class IntakeSubsystem extends SubsystemBase {
      * @return The Command to be scheduled.
      */
     public Command setRollers(double power) {
-        return this.runOnce(() -> setRollerPower(power));
+        return this.runOnce(() -> setRollerPower(power)).finallyDo(() ->
+                setRollerPower(0)
+            );
+    }
+
+    public Command setIntake(double power) {
+        return this.runEnd(
+                () -> setIntakePower(power),
+                () -> setIntakePower(0)
+            );
+    }
+
+    public Command intakeCoral() {
+        return this.runOnce(() -> setRollerPower(-0.1))
+            .andThen(new WaitUntilCommand(() -> isCoralInIntake()))
+            .finallyDo(() -> setRollerPower(0));
+    }
+
+    public Command outtakeCoral() {
+        return this.runOnce(() -> setRollerPower(0.2))
+            .andThen(new WaitCommand(1.5))
+            .finallyDo(() -> setRollerPower(0));
+    }
+
+    @Override
+    public void periodic() {
+        intakeInputs.flipperTargetPosition = targetPosition;
+
+        intakeInputs.topFlipperPosition = topFlipperEncoder.getPosition();
+        intakeInputs.topFlipperVelocity = topFlipperEncoder.getVelocity();
+
+        intakeInputs.topFlipperVoltage = topFlipperMotor.getBusVoltage();
+        intakeInputs.topFlipperCurrent = topFlipperMotor.getOutputCurrent();
+
+        intakeInputs.bottomFlipperPosition = bottomFlipperEncoder.getPosition();
+        intakeInputs.bottomFlipperVelocity = bottomFlipperEncoder.getVelocity();
+
+        intakeInputs.bottomFlipperVoltage = bottomFlipperMotor.getBusVoltage();
+        intakeInputs.bottomFlipperCurrent =
+            bottomFlipperMotor.getOutputCurrent();
+
+        Logger.processInputs("Intake", intakeInputs);
     }
 }

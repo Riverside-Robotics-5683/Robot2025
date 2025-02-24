@@ -15,6 +15,7 @@ public class Constants {
     public static class DSConstants {
 
         public static final int DRIVE_CONTROLLER = 0; // Drive controller port.
+        public static final int SYSTEMS_CONTROLLER = 1; // Systems controller port.
 
         public static final DriverProfile DEFAULT_PROFILE = new DriverProfile(
             "Default", // Profile name
@@ -108,7 +109,7 @@ public class Constants {
     public static class IMUConstants {
 
         // The IMU's CAN ID.
-        public static final int IMU = 9;
+        public static final int IMU = 1;
     }
 
     /**
@@ -167,9 +168,15 @@ public class Constants {
         public static final int ELEVATOR_RIGHT = 10;
 
         // The current limit for both elevator motors.
-        public static final int ELEAVTOR_LIMIT = 30;
+        public static final int ELEAVTOR_LIMIT = 40;
         public static final double SPEED_LIMIT = 0;
-  }
+
+        public static final double ELEVATOR_L4 = 75.2728786469;
+        public static final double ELEVATOR_L3 = 42.0799398422;
+        public static final double ELEVATOR_L2 = 21.2029852867;
+        public static final double ELEVATOR_L1 = 10.9670763016;
+        public static final double ELEVATOR_FEED = 35.1851291656;
+    }
 
     /**
      * Constants for the intake.
@@ -177,21 +184,22 @@ public class Constants {
     public static class IntakeConstants {
 
         // The CAN ID of the motor for controlling the intake angle.
-        public static final int FLIPPER = 11;
-        // The CAN ID of the motor for controlling the intake's position.
-        public static final int SLIDER = 12;
+        public static final int FLIPPER_TOP = 11;
+        // The CAN ID of the bottomo motor for controlling the intake angle.
+        public static final int FLIPPER_BOTTOM = 12;
         // The CAN ID of the motor for intaking/outaking game pieces.
         public static final int ROLLERS = 13;
 
         public static final double INTAKE_ANGLE_DEFAULT = 0; // Default intake arm angle.
-        public static final double INTAKE_ANGLE_L1 = 1.5; // Level 1 intake arm angle.
-        public static final double INTAKE_ANGLE_L2 = 2.5; // Level 2 intake arm angle.
-        public static final double INTAKE_ANGLE_L3 = 3.5; // Level 3 intake arm angle.
-        public static final double INTAKE_ANGLE_L4 = 4.5; // Level 4 intake arm angle.
+        public static final double INTAKE_ANGLE_L1 = 0.259; // Level 1 intake arm angle.
+        public static final double INTAKE_ANGLE_L2 = 0.321; // Level 2 intake arm angle.
+        public static final double INTAKE_ANGLE_L3 = 0.321; // Level 3 intake arm angle.
+        public static final double INTAKE_ANGLE_L4 = 0.3; // Level 4 intake arm angle.
+    }
 
-        public static final double INTAKE_SLIDER_OPEN = 1; // Fully extended slider position.
-        public static final double INTAKE_SLIDER_HALF_OPEN = 2; // Half extended slider position.
-        public static final double INTAKE_SLIDER_CLOSED = 3; // Fully retracted slider position.
+    public static class ClimberConstants {
+
+        public static final int CLIMBER = 14;
     }
 
     /**

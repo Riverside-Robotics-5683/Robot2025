@@ -18,15 +18,16 @@ public class Configs {
     public static SparkFlexConfig elevatorConfig = new SparkFlexConfig();
 
     public static SparkFlexConfig flipperConfig = new SparkFlexConfig();
-    public static SparkFlexConfig sliderConfig = new SparkFlexConfig();
-    public static SparkFlexConfig rollerConfig = new SparkFlexConfig();
+    public static SparkMaxConfig rollerConfig = new SparkMaxConfig();
+
+    public static SparkFlexConfig climberConfig = new SparkFlexConfig();
 
     // Config for the IMU.
     public static Pigeon2Configuration imuConfig = new Pigeon2Configuration();
 
     static {
         swerveDriveConfig
-            .idleMode(IdleMode.kCoast)
+            .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(SwerveModuleConstants.DRIVE_LIMIT)
             .closedLoopRampRate(1.5);
         swerveAngleConfig
@@ -51,7 +52,7 @@ public class Configs {
 
         swerveDriveConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(0.05, 0.001, 0)
+            .pid(0.005, 0.001, 0)
             .velocityFF(1 / KinematicsConstants.DRIVE_FREE_WHEEL_SPEED)
             .outputRange(-1, 1);
         swerveAngleConfig.closedLoop
@@ -69,31 +70,37 @@ public class Configs {
             .withDisableTemperatureCompensation(false);
 
         elevatorConfig
-            .idleMode(IdleMode.kCoast)
-            .smartCurrentLimit(ElevatorConstants.ELEAVTOR_LIMIT);
+            .idleMode(IdleMode.kBrake)
+            .smartCurrentLimit(ElevatorConstants.ELEAVTOR_LIMIT)
+            .closedLoopRampRate(1.0);
         elevatorConfig.closedLoop
-            .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-            .pid(1.0, 0.0, 0.0)
+            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+            .pid(0.1, 0, 1.0)
             .outputRange(-1, 1);
 
         flipperConfig
-            .idleMode(IdleMode.kCoast)
-            .smartCurrentLimit(20)
-            .closedLoopRampRate(1.0);
+            .idleMode(IdleMode.kBrake)
+            .smartCurrentLimit(40)
+            .closedLoopRampRate(100)
+            .openLoopRampRate(100);
         flipperConfig.closedLoop
-            .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-            .pid(1.0, 0.0, 0.0)
-            .outputRange(-1, 1);
-
-        sliderConfig
-            .idleMode(IdleMode.kCoast)
-            .smartCurrentLimit(15)
-            .closedLoopRampRate(1.0);
-        sliderConfig.closedLoop
-            .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
-            .pid(1.0, 0.0, 0.0)
+            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+            .pid(0.2, 0, 0)
             .outputRange(-1, 1);
 
         rollerConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(15);
+
+        rollerConfig.encoder
+            .positionConversionFactor(44.0 / 36.0)
+            .velocityConversionFactor(44.0 / 36.0);
+
+        climberConfig
+            .idleMode(IdleMode.kCoast)
+            .smartCurrentLimit(30)
+            .closedLoopRampRate(1.0);
+        climberConfig.closedLoop
+            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+            .pid(1.0, 0.0, 0.0)
+            .outputRange(-1, 1);
     }
 }

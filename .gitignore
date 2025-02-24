@@ -2,6 +2,7 @@
 bin/
 build/
 .gradle/
+.idea/
 .settings/
 .classpath
 .factorypath
@@ -15,4 +16,3 @@ networktables.json
 simgui-ds.json
 simgui-window.json
 simgui.json
-
