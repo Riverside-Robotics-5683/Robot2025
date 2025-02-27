@@ -7,15 +7,14 @@ public class IntakeInputs {
 
     public double flipperTargetPosition = 0.0;
 
-    public double topFlipperPosition = 0.0;
-    public double topFlipperVelocity = 0.0;
+    public double flipperPosition = 0.0;
+    public double flipperVelocity = 0.0;
 
-    public double topFlipperVoltage = 0.0;
-    public double topFlipperCurrent = 0.0;
+    public double flipperVoltage = 0.0;
+    public double flipperCurrent = 0.0;
 
-    public double bottomFlipperPosition = 0.0;
-    public double bottomFlipperVelocity = 0.0;
+    public double rollerVelocity = 0.0;
 
-    public double bottomFlipperVoltage = 0.0;
-    public double bottomFlipperCurrent = 0.0;
+    public double rollerVoltage = 0.0;
+    public double rollerCurrent = 0.0;
 }

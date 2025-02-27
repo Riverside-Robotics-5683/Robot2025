@@ -22,9 +22,9 @@ public class Constants {
             0.05, // X-axis deadband.
             0.05, // Y-axis deadband.
             0.05, // Z-axis deadband.
-            1.5, // X-axis acceleration.
-            1.5, // Y-axis acceleration.
-            1.0
+            10, // X-axis acceleration.
+            10, // Y-axis acceleration.
+            10
         ); // Z-axis acceleration.
     }
 
@@ -155,6 +155,9 @@ public class Constants {
         public static final double DISCRETIZE_SECONDS = 0.02; // 2nd order kinematics
 
         public static final double MAX_MODULE_SPEED = Units.feetToMeters(16); // Max module speed
+        public static final double ELEVATOR_MODULE_SPEED = Units.feetToMeters(
+            8
+        );
     }
 
     /**
@@ -171,11 +174,11 @@ public class Constants {
         public static final int ELEAVTOR_LIMIT = 40;
         public static final double SPEED_LIMIT = 0;
 
-        public static final double ELEVATOR_L4 = 75.2728786469;
+        public static final double ELEVATOR_L4 = 79.2728786469;
         public static final double ELEVATOR_L3 = 42.0799398422;
-        public static final double ELEVATOR_L2 = 21.2029852867;
-        public static final double ELEVATOR_L1 = 10.9670763016;
-        public static final double ELEVATOR_FEED = 35.1851291656;
+        public static final double ELEVATOR_L2 = 19.1279296875;
+        public static final double ELEVATOR_L1 = 5.9670763016;
+        public static final double ELEVATOR_FEED = 12.2029852867;
     }
 
     /**
@@ -184,22 +187,21 @@ public class Constants {
     public static class IntakeConstants {
 
         // The CAN ID of the motor for controlling the intake angle.
-        public static final int FLIPPER_TOP = 11;
-        // The CAN ID of the bottomo motor for controlling the intake angle.
-        public static final int FLIPPER_BOTTOM = 12;
+        public static final int FLIPPER = 11;
         // The CAN ID of the motor for intaking/outaking game pieces.
-        public static final int ROLLERS = 13;
+        public static final int ROLLERS = 12;
 
         public static final double INTAKE_ANGLE_DEFAULT = 0; // Default intake arm angle.
-        public static final double INTAKE_ANGLE_L1 = 0.259; // Level 1 intake arm angle.
-        public static final double INTAKE_ANGLE_L2 = 0.321; // Level 2 intake arm angle.
-        public static final double INTAKE_ANGLE_L3 = 0.321; // Level 3 intake arm angle.
-        public static final double INTAKE_ANGLE_L4 = 0.3; // Level 4 intake arm angle.
+        public static final double INTAKE_ANGLE_L1 = 0.9988839030265808; // Level 1 intake arm angle.
+        public static final double INTAKE_ANGLE_L2 = 1.0859375; // Level 2 intake arm angle.
+        public static final double INTAKE_ANGLE_L3 = 1.1277902126312256; // Level 3 intake arm angle.
+        public static final double INTAKE_ANGLE_L4 = 1.1350446939468384; // Level 4 intake arm angle.
+        public static final double INTAKE_ANGLE_FEED = 0.5069754719734192; // Feed angle.
     }
 
     public static class ClimberConstants {
 
-        public static final int CLIMBER = 14;
+        public static final int CLIMBER = 13;
     }
 
     /**

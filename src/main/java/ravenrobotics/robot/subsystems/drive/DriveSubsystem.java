@@ -9,19 +9,23 @@ import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator3d;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import java.util.List;
 import org.littletonrobotics.junction.Logger;
+import org.photonvision.EstimatedRobotPose;
 import ravenrobotics.robot.Constants.AutoConstants;
 import ravenrobotics.robot.Constants.KinematicsConstants;
 import ravenrobotics.robot.Constants.SwerveModuleKeys;
-import ravenrobotics.robot.subsystems.vision.VisionSubsystem;
 
 /**
  * Subsystem for controlling the drive base.
@@ -33,7 +37,7 @@ public class DriveSubsystem extends SubsystemBase {
     private SwerveModuleInputsAutoLogged[] swerveModuleInputs =
         new SwerveModuleInputsAutoLogged[4];
 
-    private final IMU imu = new IMU(); // The IMU for getting heading and orientation.
+    private final IMU imu; // The IMU for getting heading and orientation.
     private IMUInputsAutoLogged imuInputs = new IMUInputsAutoLogged(); // The IMU inputs for AdvantageKit.
 
     private SwerveModulePosition[] swerveModulePositions =
@@ -43,6 +47,8 @@ public class DriveSubsystem extends SubsystemBase {
     // Pose estimator combining drive odometry and vision measurements for more
     // accurate odometry.
     private SwerveDrivePoseEstimator3d estimatedPose;
+
+    private Field2d fieldWidget;
 
     private static DriveSubsystem instance; // The static instance for the getInstance method.
 
@@ -56,6 +62,8 @@ public class DriveSubsystem extends SubsystemBase {
 
             swerveModuleInputs[i] = new SwerveModuleInputsAutoLogged();
         }
+
+        imu = new IMU();
 
         // Create the IMU inputs.
         imuInputs = new IMUInputsAutoLogged();
@@ -93,6 +101,11 @@ public class DriveSubsystem extends SubsystemBase {
             // Use this subsystem as part of the requirements for the auto commands.
             this
         );
+
+        // Reset the rotation because it starts off angled for some reason.
+        estimatedPose.resetRotation(new Rotation3d());
+
+        fieldWidget = new Field2d();
     }
 
     /**
@@ -226,7 +239,19 @@ public class DriveSubsystem extends SubsystemBase {
     public Command resetHeading() {
         return this.runOnce(() -> {
                 imu.resetHeading();
+                estimatedPose.resetRotation(new Rotation3d());
             });
+    }
+
+    public void submitVisionMeasurements(
+        List<EstimatedRobotPose> visionMeasurements
+    ) {
+        for (EstimatedRobotPose measurement : visionMeasurements) {
+            estimatedPose.addVisionMeasurement(
+                measurement.estimatedPose,
+                measurement.timestampSeconds
+            );
+        }
     }
 
     @Override
@@ -247,27 +272,22 @@ public class DriveSubsystem extends SubsystemBase {
         Logger.processInputs("Drive/IMU", imuInputs); // Process the IMU inputs.
 
         // Update the pose estimator with the updated inputs.
-        estimatedPose.update(imuInputs.imuOrientation, swerveModulePositions);
-
-        // // Get the vision poses from the VisionSubsystem.
-        // var leftPose = VisionSubsystem.getInstance().getLeftEstimatedPose();
-        // var rightPose = VisionSubsystem.getInstance().getRightEstimatedPose();
-
-        // // Add the vision estimates to the pose estimator.
-        // estimatedPose.addVisionMeasurement(
-        //     leftPose.estimatedPose,
-        //     leftPose.timestampSeconds
-        // );
-        // estimatedPose.addVisionMeasurement(
-        //     rightPose.estimatedPose,
-        //     leftPose.timestampSeconds
-        // );
+        //estimatedPose.update(imuInputs.imuOrientation, swerveModulePositions);
+        estimatedPose.updateWithTime(
+            Logger.getTimestamp(),
+            imuInputs.imuOrientation,
+            swerveModulePositions
+        );
 
         // Record the updated pose to the log.
         Logger.recordOutput(
             "Drive/Position",
             estimatedPose.getEstimatedPosition()
         );
+
+        fieldWidget.setRobotPose(getPose2d());
+
+        SmartDashboard.putData("Field", fieldWidget);
     }
 
     @Override

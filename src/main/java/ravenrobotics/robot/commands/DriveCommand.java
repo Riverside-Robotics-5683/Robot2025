@@ -7,6 +7,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import java.util.function.DoubleSupplier;
 import ravenrobotics.robot.Constants.KinematicsConstants;
 import ravenrobotics.robot.subsystems.drive.DriveSubsystem;
+import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem;
 import ravenrobotics.robot.util.DriverProfile;
 
 /**
@@ -52,9 +53,9 @@ public class DriveCommand extends Command {
         deadbands = profile.getDeadbands(); // Get the deadbands from the driver profile.
 
         // Create the SlewRateLimiters for each axis using the deadbands.
-        this.xLimiter = new SlewRateLimiter(rateLimits[0]);
-        this.yLimiter = new SlewRateLimiter(rateLimits[1]);
-        this.zLimiter = new SlewRateLimiter(rateLimits[2]);
+        this.xLimiter = new SlewRateLimiter(rateLimits[0], -100.0, 0.0);
+        this.yLimiter = new SlewRateLimiter(rateLimits[1], -100.0, 0.0);
+        this.zLimiter = new SlewRateLimiter(rateLimits[2], -100.0, 0.0);
 
         this.driveSubsystem = DriveSubsystem.getInstance(); // Get the active DriveSubsystem instance.
         addRequirements(this.driveSubsystem); // Add the DriveSubsystem as a requirement, so that no other commands access
@@ -65,30 +66,38 @@ public class DriveCommand extends Command {
     public void execute() {
         double xSpeed, ySpeed, zSpeed; // Initialize the temporary variables for the current speed.
 
+        double currentMaxSpeed;
+
+        if (ElevatorSubsystem.getInstance().isElevatorPastLimit()) {
+            currentMaxSpeed = KinematicsConstants.ELEVATOR_MODULE_SPEED;
+        } else {
+            currentMaxSpeed = KinematicsConstants.MAX_MODULE_SPEED;
+        }
+
         xSpeed = xLimiter.calculate(
             // Apply the deadband for the x-axis, then rate limit the value. Finally,
             // multiply by the max module speed to convert to m/s.
             MathUtil.applyDeadband(xSupplier.getAsDouble(), deadbands[0]) *
-            KinematicsConstants.MAX_MODULE_SPEED
+            currentMaxSpeed
         );
         ySpeed = yLimiter.calculate(
             // Apply the deadband for the y-axis, then rate limit the value. Finally,
             // multiply by the max module speed to convert to m/s.
             MathUtil.applyDeadband(ySupplier.getAsDouble(), deadbands[1]) *
-            KinematicsConstants.MAX_MODULE_SPEED
+            currentMaxSpeed
         );
         zSpeed = zLimiter.calculate(
             // Apply the deadband for the z-axis, then rate limit the value. Finally,
             // multiply by the max module speed to convert to m/s.
             MathUtil.applyDeadband(zSupplier.getAsDouble(), deadbands[2]) *
-            KinematicsConstants.MAX_MODULE_SPEED
+            currentMaxSpeed
         );
 
-        ChassisSpeeds driveSpeeds = ChassisSpeeds.fromRobotRelativeSpeeds(
+        ChassisSpeeds driveSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
             xSpeed,
             ySpeed,
             zSpeed,
-            driveSubsystem.getFusedHeading()
+            driveSubsystem.getHeading()
         ); // Convert the speeds from the joysticks to a field-relative ChassisSpeeds,
         // using the current heading.
 

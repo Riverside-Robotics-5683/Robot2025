@@ -87,7 +87,13 @@ public class Robot extends LoggedRobot {
     }
 
     @Override
-    public void autonomousInit() {}
+    public void autonomousInit() {
+        var command = robotContainer.getAutoCommand();
+
+        if (command != null) {
+            command.schedule();
+        }
+    }
 
     @Override
     public void autonomousPeriodic() {}
@@ -107,7 +113,11 @@ public class Robot extends LoggedRobot {
     public void disabledPeriodic() {}
 
     @Override
-    public void testInit() {}
+    public void testInit() {
+        var command = robotContainer.getElevatorTestCommand();
+
+        command.schedule();
+    }
 
     @Override
     public void testPeriodic() {}

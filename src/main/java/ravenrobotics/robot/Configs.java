@@ -52,7 +52,7 @@ public class Configs {
 
         swerveDriveConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(0.005, 0.001, 0)
+            .pid(0.005, 0, 0)
             .velocityFF(1 / KinematicsConstants.DRIVE_FREE_WHEEL_SPEED)
             .outputRange(-1, 1);
         swerveAngleConfig.closedLoop
@@ -69,23 +69,21 @@ public class Configs {
             .withDisableNoMotionCalibration(false)
             .withDisableTemperatureCompensation(false);
 
+        //imuConfig.GyroTrim.withGyroScalarZ(180);
+
         elevatorConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(ElevatorConstants.ELEAVTOR_LIMIT)
             .closedLoopRampRate(1.0);
         elevatorConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(0.1, 0, 1.0)
+            .pid(0.1, 0, 0)
             .outputRange(-1, 1);
 
-        flipperConfig
-            .idleMode(IdleMode.kBrake)
-            .smartCurrentLimit(40)
-            .closedLoopRampRate(100)
-            .openLoopRampRate(100);
+        flipperConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(40);
         flipperConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(0.2, 0, 0)
+            .pid(0.5, 0, 0.2)
             .outputRange(-1, 1);
 
         rollerConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(15);

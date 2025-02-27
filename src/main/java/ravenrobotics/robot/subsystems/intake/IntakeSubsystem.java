@@ -8,6 +8,7 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
+import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -15,24 +16,17 @@ import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import org.littletonrobotics.junction.Logger;
 import ravenrobotics.robot.Configs;
 import ravenrobotics.robot.Constants.IntakeConstants;
+import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem;
 
 public class IntakeSubsystem extends SubsystemBase {
 
     /** Motor controlling the flipper mechanism for intake angle adjustment */
-    private final SparkFlex topFlipperMotor = new SparkFlex(
-        IntakeConstants.FLIPPER_TOP,
-        SparkFlex.MotorType.kBrushless
-    );
-
-    private final SparkFlex bottomFlipperMotor = new SparkFlex(
-        IntakeConstants.FLIPPER_BOTTOM,
+    private final SparkFlex flipperMotor = new SparkFlex(
+        IntakeConstants.FLIPPER,
         MotorType.kBrushless
     );
 
-    private final RelativeEncoder topFlipperEncoder =
-        topFlipperMotor.getEncoder();
-    private final RelativeEncoder bottomFlipperEncoder =
-        bottomFlipperMotor.getEncoder();
+    private final RelativeEncoder flipperEncoder = flipperMotor.getEncoder();
 
     /** Motor controlling the rollers for intake/outtake */
     private final SparkMax rollerMotor = new SparkMax(
@@ -44,7 +38,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     /** Closed loop controller for the flipper motor */
     private final SparkClosedLoopController flipperController =
-        topFlipperMotor.getClosedLoopController();
+        flipperMotor.getClosedLoopController();
 
     private IntakeInputsAutoLogged intakeInputs = new IntakeInputsAutoLogged();
 
@@ -67,13 +61,8 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     private IntakeSubsystem() {
-        topFlipperMotor.configure(
+        flipperMotor.configure(
             Configs.flipperConfig,
-            ResetMode.kResetSafeParameters,
-            PersistMode.kPersistParameters
-        );
-        bottomFlipperMotor.configure(
-            Configs.flipperConfig.follow(topFlipperMotor),
             ResetMode.kResetSafeParameters,
             PersistMode.kPersistParameters
         );
@@ -83,24 +72,6 @@ public class IntakeSubsystem extends SubsystemBase {
             ResetMode.kResetSafeParameters,
             PersistMode.kPersistParameters
         );
-    }
-
-    /**
-     * The different possible slider positiions.
-     */
-    public enum IntakeSliderPosition {
-        /**
-         * Fully out.
-         */
-        OPEN,
-        /**
-         * Open enough to clear the elevator.
-         */
-        HALF_OPEN,
-        /**
-         * Fully retracted.
-         */
-        CLOSED,
     }
 
     /**
@@ -123,6 +94,10 @@ public class IntakeSubsystem extends SubsystemBase {
          * The angle for L4.
          */
         L4,
+        /**
+         * The angle for the coral station.
+         */
+        FEED,
         /**
          * Default (flat) angle.
          */
@@ -150,13 +125,13 @@ public class IntakeSubsystem extends SubsystemBase {
 
     public boolean isCoralInIntake() {
         return (
-            rollerMotor.getAppliedOutput() > 10 &&
-            rollerEncoder.getVelocity() < 800
+            rollerMotor.getOutputCurrent() > 10 &&
+            Math.abs(rollerEncoder.getVelocity()) < 800
         );
     }
 
     public void setIntakePower(double power) {
-        topFlipperMotor.set(power);
+        flipperMotor.set(power);
     }
 
     /**
@@ -187,6 +162,10 @@ public class IntakeSubsystem extends SubsystemBase {
             case L4:
                 return this.runOnce(() ->
                         setIntakeAngle(IntakeConstants.INTAKE_ANGLE_L4)
+                    );
+            case FEED:
+                return this.runOnce(() ->
+                        setIntakeAngle(IntakeConstants.INTAKE_ANGLE_FEED)
                     );
             // For DEFAULT position, set to the default angle constant
             case DEFAULT:
@@ -227,7 +206,17 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     public Command outtakeCoral() {
-        return this.runOnce(() -> setRollerPower(0.2))
+        if (!ElevatorSubsystem.getInstance().isElevatorAtL1()) {
+            return this.runOnce(() -> setRollerPower(0.2))
+                .andThen(new WaitCommand(1.5))
+                .finallyDo(() -> setRollerPower(0));
+        } else {
+            return outtakeCoralL1();
+        }
+    }
+
+    public Command outtakeCoralL1() {
+        return this.runOnce(() -> setRollerPower(0.1))
             .andThen(new WaitCommand(1.5))
             .finallyDo(() -> setRollerPower(0));
     }
@@ -236,18 +225,16 @@ public class IntakeSubsystem extends SubsystemBase {
     public void periodic() {
         intakeInputs.flipperTargetPosition = targetPosition;
 
-        intakeInputs.topFlipperPosition = topFlipperEncoder.getPosition();
-        intakeInputs.topFlipperVelocity = topFlipperEncoder.getVelocity();
+        intakeInputs.flipperPosition = flipperEncoder.getPosition();
+        intakeInputs.flipperVelocity = flipperEncoder.getVelocity();
 
-        intakeInputs.topFlipperVoltage = topFlipperMotor.getBusVoltage();
-        intakeInputs.topFlipperCurrent = topFlipperMotor.getOutputCurrent();
+        intakeInputs.flipperVoltage = flipperMotor.getBusVoltage();
+        intakeInputs.flipperCurrent = flipperMotor.getOutputCurrent();
 
-        intakeInputs.bottomFlipperPosition = bottomFlipperEncoder.getPosition();
-        intakeInputs.bottomFlipperVelocity = bottomFlipperEncoder.getVelocity();
+        intakeInputs.rollerVelocity = rollerEncoder.getVelocity();
 
-        intakeInputs.bottomFlipperVoltage = bottomFlipperMotor.getBusVoltage();
-        intakeInputs.bottomFlipperCurrent =
-            bottomFlipperMotor.getOutputCurrent();
+        intakeInputs.rollerVoltage = rollerMotor.getBusVoltage();
+        intakeInputs.rollerCurrent = rollerMotor.getOutputCurrent();
 
         Logger.processInputs("Intake", intakeInputs);
     }

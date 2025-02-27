@@ -12,6 +12,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
+import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.Logger;
 import ravenrobotics.robot.Constants.ElevatorConstants;
 
@@ -122,8 +123,15 @@ public class ElevatorSubsystem extends SubsystemBase {
     }
 
     public boolean isElevatorPastLimit() {
-        return leftEncoder.getPosition() >= ElevatorConstants.SPEED_LIMIT;
+        return leftEncoder.getPosition() > ElevatorConstants.ELEVATOR_L2;
         //test if elevator is past limit, and add a limit
+    }
+
+    public boolean isElevatorAtL1() {
+        return (
+            leftEncoder.getPosition() > 0 &&
+            leftEncoder.getPosition() < ElevatorConstants.ELEVATOR_L2
+        );
     }
 
     public boolean isElevatorAtPosition(double tolerance) {
@@ -144,6 +152,10 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     public Command rawElevatorPower(double power) {
         return this.runOnce(() -> setPower(power)).finallyDo(() -> setPower(0));
+    }
+
+    public Command rawElevatorPower(DoubleSupplier power) {
+        return this.run(() -> setPower(power.getAsDouble()));
     }
 
     @Override

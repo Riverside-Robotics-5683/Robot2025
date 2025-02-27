@@ -6,12 +6,15 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.targeting.PhotonPipelineResult;
+import ravenrobotics.robot.subsystems.drive.DriveSubsystem;
 
 public class VisionSubsystem extends SubsystemBase {
 
@@ -30,38 +33,25 @@ public class VisionSubsystem extends SubsystemBase {
 
     /** Transform offset for the left camera position relative to robot center */
     private final Transform3d leftOffset = new Transform3d(
-        new Translation3d(0.5, 0.0, 0.0),
-        new Rotation3d(0, 0, 0)
+        new Translation3d(0.2667, 0.0, 0.3302),
+        new Rotation3d(-90, 90, 0)
     );
     /** Transform offset for the right camera position relative to robot center */
     private final Transform3d rightOffset = new Transform3d(
-        new Translation3d(-0.5, 0.0, 0.0),
-        new Rotation3d(0, 0, 0)
+        new Translation3d(-0.3175, 0.0, 0.7112),
+        new Rotation3d(90, 90, 0)
     );
 
-    /** Coral camera for object detection. */
-    private final PhotonCamera coralCamera = new PhotonCamera("coralCamera");
-
-    /** Pose estimator using the left camera */
     private final PhotonPoseEstimator leftEstimator = new PhotonPoseEstimator(
         fieldLayout,
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
         leftOffset
     );
-    /** Pose estimator using the right camera */
     private final PhotonPoseEstimator rightEstimator = new PhotonPoseEstimator(
         fieldLayout,
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
         rightOffset
     );
-
-    private List<PhotonPipelineResult> leftResults;
-    private List<PhotonPipelineResult> rightResults;
-
-    /** Most recent pose estimate from the left camera */
-    private EstimatedRobotPose leftPose;
-    /** Most recent pose estimate from the right camera */
-    private EstimatedRobotPose rightPose;
 
     /** Singleton instance of the vision subsystem */
     private static VisionSubsystem instance;
@@ -80,87 +70,38 @@ public class VisionSubsystem extends SubsystemBase {
         return instance;
     }
 
-    /**
-     * Gets the estimated pose from the left camera.
-     *
-     * @return The estimated robot pose.
-     */
-    public EstimatedRobotPose getLeftEstimatedPose() {
-        return leftPose;
-    }
-
-    /**
-     * Gets the estimated pose from the right camera.
-     *
-     * @return The estimated robot pose.
-     */
-    public EstimatedRobotPose getRightEstimatedPose() {
-        return rightPose;
-    }
-
-    /**
-     * Gets the detected AprilTags from the left camera.
-     *
-     * @return The detected AprilTags.
-     */
-    public PhotonPipelineResult getIntakeAprilTags() {
-        // Make sure there are actually results before trying to return anything.
-        if (!leftResults.isEmpty()) {
-            return leftResults.get(0);
-        }
-
-        return null;
-    }
-
-    /**
-     * Get the detected coral from the coral camera.
-     *
-     * @return The coral that has been detected.
-     */
-    public PhotonPipelineResult getDetectedCoral() {
-        var results = coralCamera.getAllUnreadResults();
-
-        if (!results.isEmpty()) {
-            return results.get(0);
-        }
-
-        return null;
-    }
-
     @Override
     public void periodic() {
-        // Get all unread results from both cameras
-        leftResults = leftLocalizer.getAllUnreadResults();
-        rightResults = rightLocalizer.getAllUnreadResults();
+        List<PhotonPipelineResult> leftResults =
+            leftLocalizer.getAllUnreadResults();
+        List<PhotonPipelineResult> rightResults =
+            rightLocalizer.getAllUnreadResults();
 
-        // Process left camera results if available
+        List<EstimatedRobotPose> estimatedPoses = new ArrayList<>();
+
         if (!leftResults.isEmpty()) {
-            var result = leftResults.get(0);
+            Optional<EstimatedRobotPose> leftEstimatedPose =
+                leftEstimator.update(leftResults.get(leftResults.size() - 1));
 
-            // If AprilTags are detected
-            if (result.hasTargets()) {
-                var pose = leftEstimator.update(result);
-
-                // Update the left pose estimate if valid
-                if (pose.isPresent()) {
-                    leftPose = pose.get();
-                }
+            if (leftEstimatedPose.isPresent()) {
+                estimatedPoses.add(leftEstimatedPose.get());
             }
         }
 
-        // Process right camera results if available
         if (!rightResults.isEmpty()) {
-            var result = rightResults.get(0);
+            Optional<EstimatedRobotPose> rightEstimatedPose =
+                rightEstimator.update(
+                    rightResults.get(rightResults.size() - 1)
+                );
 
-            // If AprilTags are detected
-            if (result.hasTargets()) {
-                var pose = rightEstimator.update(result);
-
-                // Update the right pose estimate if valid
-                if (pose.isPresent()) {
-                    rightPose = pose.get();
-                }
+            if (rightEstimatedPose.isPresent()) {
+                estimatedPoses.add(rightEstimatedPose.get());
             }
+        }
+
+        if (!estimatedPoses.isEmpty()) {
+            DriveSubsystem.getInstance()
+                .submitVisionMeasurements(estimatedPoses);
         }
     }
 }
