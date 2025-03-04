@@ -23,7 +23,7 @@ public class Constants {
             0.05, // Y-axis deadband.
             0.05, // Z-axis deadband.
             10, // X-axis acceleration.
-            10, // Y-axis acceleration.
+            7, // Y-axis acceleration.
             10
         ); // Z-axis acceleration.
     }
@@ -174,11 +174,11 @@ public class Constants {
         public static final int ELEAVTOR_LIMIT = 40;
         public static final double SPEED_LIMIT = 0;
 
-        public static final double ELEVATOR_L4 = 79.2728786469;
-        public static final double ELEVATOR_L3 = 42.0799398422;
-        public static final double ELEVATOR_L2 = 19.1279296875;
+        public static final double ELEVATOR_L4 = 77.727;
+        public static final double ELEVATOR_L3 = 45.430;
+        public static final double ELEVATOR_L2 = 22.402;
         public static final double ELEVATOR_L1 = 5.9670763016;
-        public static final double ELEVATOR_FEED = 12.2029852867;
+        public static final double ELEVATOR_FEED = 16.843;
     }
 
     /**

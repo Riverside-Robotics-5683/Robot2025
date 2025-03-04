@@ -14,6 +14,7 @@ import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.targeting.PhotonPipelineResult;
+import org.photonvision.targeting.PhotonTrackedTarget;
 import ravenrobotics.robot.subsystems.drive.DriveSubsystem;
 
 public class VisionSubsystem extends SubsystemBase {
@@ -30,6 +31,8 @@ public class VisionSubsystem extends SubsystemBase {
     private final PhotonCamera rightLocalizer = new PhotonCamera(
         "rightLocalizer"
     );
+
+    private final PhotonCamera coralCamera = new PhotonCamera("coralCamera");
 
     /** Transform offset for the left camera position relative to robot center */
     private final Transform3d leftOffset = new Transform3d(
@@ -53,6 +56,10 @@ public class VisionSubsystem extends SubsystemBase {
         rightOffset
     );
 
+    private List<PhotonPipelineResult> leftResults = new ArrayList<>();
+    private List<PhotonPipelineResult> rightResults = new ArrayList<>();
+    private List<PhotonPipelineResult> coralResults = new ArrayList<>();
+
     /** Singleton instance of the vision subsystem */
     private static VisionSubsystem instance;
 
@@ -70,12 +77,64 @@ public class VisionSubsystem extends SubsystemBase {
         return instance;
     }
 
+    public Optional<List<PhotonTrackedTarget>> getLeftAprilTags() {
+        if (leftResults.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(
+            leftResults.get(leftResults.size() - 1).getTargets()
+        );
+    }
+
+    public Optional<List<PhotonTrackedTarget>> getVisibleCoral()
+        throws IllegalAccessException {
+        if (coralCamera.getPipelineIndex() != 0) {
+            throw new IllegalAccessException(
+                "coralCamera must be set to the coral pipeline!"
+            );
+        }
+
+        if (coralResults.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(
+            coralResults.get(coralResults.size() - 1).getTargets()
+        );
+    }
+
+    public Optional<List<PhotonTrackedTarget>> getCoralAprilTags()
+        throws IllegalAccessException {
+        if (coralCamera.getPipelineIndex() != 1) {
+            throw new IllegalAccessException(
+                "coralCamera must be set to the AprilTag pipeline!"
+            );
+        }
+
+        if (coralResults.isEmpty()) {
+            return Optional.empty();
+        }
+
+        return Optional.ofNullable(
+            coralResults.get(coralResults.size() - 1).getTargets()
+        );
+    }
+
+    public void setCoralToCoral() {
+        coralCamera.setPipelineIndex(0);
+    }
+
+    public void setCoralToAprilTags() {
+        coralCamera.setPipelineIndex(1);
+    }
+
     @Override
     public void periodic() {
-        List<PhotonPipelineResult> leftResults =
-            leftLocalizer.getAllUnreadResults();
-        List<PhotonPipelineResult> rightResults =
-            rightLocalizer.getAllUnreadResults();
+        leftResults = leftLocalizer.getAllUnreadResults();
+        rightResults = rightLocalizer.getAllUnreadResults();
+
+        coralResults = coralCamera.getAllUnreadResults();
 
         List<EstimatedRobotPose> estimatedPoses = new ArrayList<>();
 

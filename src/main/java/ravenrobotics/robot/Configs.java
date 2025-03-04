@@ -74,11 +74,16 @@ public class Configs {
         elevatorConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(ElevatorConstants.ELEAVTOR_LIMIT)
-            .closedLoopRampRate(1.0);
+            .closedLoopRampRate(0.5);
         elevatorConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(0.1, 0, 0)
-            .outputRange(-1, 1);
+            .pid(1.0, 0, 0)
+            .outputRange(-0.25, 1);
+        elevatorConfig.encoder.velocityConversionFactor(1.0 / 60.0);
+
+        elevatorConfig.closedLoop.maxMotion
+            .maxVelocity(3200)
+            .maxAcceleration(6000);
 
         flipperConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(40);
         flipperConfig.closedLoop

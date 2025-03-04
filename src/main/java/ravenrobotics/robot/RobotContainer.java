@@ -2,12 +2,16 @@ package ravenrobotics.robot;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
+import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import ravenrobotics.robot.Constants.DSConstants;
+import ravenrobotics.robot.commands.AlignToReefCommand;
 import ravenrobotics.robot.commands.DriveCommand;
 import ravenrobotics.robot.commands.MoveAuto;
 import ravenrobotics.robot.subsystems.climber.ClimberSubsystem;
@@ -39,6 +43,13 @@ public class RobotContainer {
     private final Command elevatorTestCommand = ElevatorSubsystem.getInstance()
         .rawElevatorPower(() -> -systemsController.getLeftY());
 
+    private final Command station2L1 = new ParallelCommandGroup(
+        new MoveAuto(1.5, 1.5),
+        ElevatorSubsystem.getInstance().setElevatorPosition(ElevatorPosition.L1)
+    )
+        .andThen(IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L1))
+        .andThen(IntakeSubsystem.getInstance().outtakeCoralL1());
+
     private SendableChooser<Integer> modeChooser = new SendableChooser<
         Integer
     >();
@@ -50,7 +61,16 @@ public class RobotContainer {
 
         // Set the default command for the DriveSubsystem to the drive command.
         DriveSubsystem.getInstance().setDefaultCommand(driveCommand);
-        ElevatorSubsystem.getInstance();
+        ElevatorSubsystem.getInstance()
+            .setDefaultCommand(
+                ElevatorSubsystem.getInstance()
+                    .rawElevatorPower(() ->
+                        MathUtil.applyDeadband(
+                            -systemsController.getLeftY(),
+                            0.05
+                        )
+                    )
+            );
         IntakeSubsystem.getInstance();
         ClimberSubsystem.getInstance();
 
@@ -74,10 +94,38 @@ public class RobotContainer {
             new MoveAuto(Units.feetToMeters(4), 2.5)
         );
 
+        autoChooser.addOption("Station 2 L1 (no PathPlanner)", station2L1);
+
         SmartDashboard.putData("Auto Chooser", autoChooser);
     }
 
-    public Command getElevatorTestCommand() {
+    public Command getTestCommand() {
+        systemsController.x().onTrue(new AlignToReefCommand());
+
+        systemsController
+            .povUp()
+            .onTrue(
+                ElevatorSubsystem.getInstance()
+                    .sysIdQuasistatic(Direction.kForward)
+            );
+        systemsController
+            .povDown()
+            .onTrue(
+                ElevatorSubsystem.getInstance()
+                    .sysIdQuasistatic(Direction.kReverse)
+            );
+
+        systemsController
+            .povLeft()
+            .onTrue(
+                ElevatorSubsystem.getInstance().sysIdDynamic(Direction.kForward)
+            );
+        systemsController
+            .povRight()
+            .onTrue(
+                ElevatorSubsystem.getInstance().sysIdDynamic(Direction.kReverse)
+            );
+
         return elevatorTestCommand;
     }
 

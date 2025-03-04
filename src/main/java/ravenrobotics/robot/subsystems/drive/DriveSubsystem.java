@@ -195,6 +195,10 @@ public class DriveSubsystem extends SubsystemBase {
         return estimatedPose.getEstimatedPosition().toPose2d();
     }
 
+    public Pose3d getPose3d() {
+        return estimatedPose.getEstimatedPosition();
+    }
+
     /**
      * Reset the estimated position of the robot.
      *

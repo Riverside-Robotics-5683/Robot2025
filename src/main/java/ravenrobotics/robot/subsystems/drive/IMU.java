@@ -2,6 +2,7 @@ package ravenrobotics.robot.subsystems.drive;
 
 import static ravenrobotics.robot.Configs.imuConfig;
 
+import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.StatusSignal;
 import com.ctre.phoenix6.hardware.Pigeon2;
 import com.ctre.phoenix6.sim.Pigeon2SimState;
@@ -28,6 +29,8 @@ public class IMU {
     private final StatusSignal<LinearAcceleration> imuRawXAccel;
     private final StatusSignal<LinearAcceleration> imuRawYAccel;
     private final StatusSignal<LinearAcceleration> imuRawZAccel;
+
+    private double resetCounter = 0;
 
     /**
      * Class for getting information from a Pigeon 2.0 IMU.
@@ -74,7 +77,7 @@ public class IMU {
      */
     public void updateInputs(IMUInputs inputs) {
         // Refresh all of the signals for usage.
-        StatusSignal.refreshAll(
+        StatusCode code = StatusSignal.refreshAll(
             imuRawRoll,
             imuRawPitch,
             imuRawYaw,
@@ -82,6 +85,16 @@ public class IMU {
             imuRawYAccel,
             imuRawZAccel
         );
+
+        if (code != StatusCode.OK) {
+            resetCounter += 1;
+
+            if (resetCounter >= 10) {
+                imu.getConfigurator().apply(imuConfig);
+                resetCounter = 0;
+                return;
+            }
+        }
 
         inputs.imuHeading = imu.getRotation2d(); // Get the IMU's heading.
         inputs.imuOrientation = imu.getRotation3d(); // Get the IMU's orientation.

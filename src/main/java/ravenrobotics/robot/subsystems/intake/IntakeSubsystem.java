@@ -8,7 +8,6 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
-import edu.wpi.first.wpilibj.simulation.ElevatorSim;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
@@ -201,6 +200,7 @@ public class IntakeSubsystem extends SubsystemBase {
 
     public Command intakeCoral() {
         return this.runOnce(() -> setRollerPower(-0.1))
+            .andThen(new WaitCommand(0.5))
             .andThen(new WaitUntilCommand(() -> isCoralInIntake()))
             .finallyDo(() -> setRollerPower(0));
     }
@@ -211,6 +211,7 @@ public class IntakeSubsystem extends SubsystemBase {
                 .andThen(new WaitCommand(1.5))
                 .finallyDo(() -> setRollerPower(0));
         } else {
+            System.out.println("L1 Out");
             return outtakeCoralL1();
         }
     }

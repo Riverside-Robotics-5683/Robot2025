@@ -30,15 +30,21 @@
           }
         },
         {
+          "type": "wait",
+          "data": {
+            "waitTime": 1.5
+          }
+        },
+        {
           "type": "named",
           "data": {
             "name": "scoreCoralL1"
           }
         },
         {
-          "type": "path",
+          "type": "named",
           "data": {
-            "pathName": "Reef 3 to Idle"
+            "name": "intakeClosed"
           }
         }
       ]

@@ -114,7 +114,7 @@ public class Robot extends LoggedRobot {
 
     @Override
     public void testInit() {
-        var command = robotContainer.getElevatorTestCommand();
+        var command = robotContainer.getTestCommand();
 
         command.schedule();
     }

@@ -9,9 +9,14 @@ import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import edu.wpi.first.units.Measure;
+import edu.wpi.first.units.Units;
+import edu.wpi.first.units.measure.Voltage;
+import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.Logger;
 import ravenrobotics.robot.Constants.ElevatorConstants;
@@ -39,6 +44,22 @@ public class ElevatorSubsystem extends SubsystemBase {
     private double targetPosition;
 
     private ElevatorInputsAutoLogged elevatorInputs;
+
+    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+        new SysIdRoutine.Config(null, null, null, state ->
+            Logger.recordOutput("SysIDState", state.toString())
+        ),
+        new SysIdRoutine.Mechanism(
+            (Voltage voltage) -> {
+                leftMotor.set(
+                    voltage.in(Units.Volts) /
+                    RobotController.getBatteryVoltage()
+                );
+            },
+            null,
+            this
+        )
+    );
 
     private static ElevatorSubsystem instance;
 
@@ -75,13 +96,27 @@ public class ElevatorSubsystem extends SubsystemBase {
         elevatorInputs = new ElevatorInputsAutoLogged();
     }
 
+    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.quasistatic(direction);
+    }
+
+    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.dynamic(direction);
+    }
+
     /**
      * Set the elevator position
      * @param position
      */
     private void setPosition(double position) {
-        elevatorController.setReference(position, ControlType.kPosition);
-
+        if (position < targetPosition) {
+            elevatorController.setReference(position, ControlType.kPosition);
+        } else {
+            elevatorController.setReference(
+                position,
+                ControlType.kMAXMotionPositionControl
+            );
+        }
         targetPosition = position;
     }
 
@@ -146,7 +181,7 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     public Command setElevatorPosition(ElevatorPosition position) {
         return this.runOnce(() -> setPosition(position)).andThen(
-                new WaitUntilCommand(() -> isElevatorAtPosition())
+                new WaitUntilCommand(() -> isElevatorAtPosition(2))
             );
     }
 
@@ -163,13 +198,15 @@ public class ElevatorSubsystem extends SubsystemBase {
         elevatorInputs.leftMotorPosition = leftEncoder.getPosition();
         elevatorInputs.leftMotorVelocity = leftEncoder.getVelocity();
 
-        elevatorInputs.leftMotorVoltage = leftMotor.getBusVoltage();
+        elevatorInputs.leftMotorVoltage =
+            leftMotor.get() * RobotController.getBatteryVoltage();
         elevatorInputs.leftMotorCurrent = leftMotor.getOutputCurrent();
 
         elevatorInputs.rightMotorPosition = rightEncoder.getPosition();
         elevatorInputs.rightMotorVelocity = rightEncoder.getVelocity();
 
-        elevatorInputs.rightMotorVoltage = rightMotor.getBusVoltage();
+        elevatorInputs.rightMotorVoltage =
+            rightMotor.get() * RobotController.getBatteryVoltage();
         elevatorInputs.rightMotorCurrent = rightMotor.getOutputCurrent();
 
         elevatorInputs.targetPosition = targetPosition;
