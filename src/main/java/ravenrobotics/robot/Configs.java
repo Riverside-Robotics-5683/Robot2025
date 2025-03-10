@@ -1,6 +1,5 @@
 package ravenrobotics.robot;
 
-import com.ctre.phoenix6.configs.Pigeon2Configuration;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
@@ -21,9 +20,6 @@ public class Configs {
     public static SparkMaxConfig rollerConfig = new SparkMaxConfig();
 
     public static SparkFlexConfig climberConfig = new SparkFlexConfig();
-
-    // Config for the IMU.
-    public static Pigeon2Configuration imuConfig = new Pigeon2Configuration();
 
     static {
         swerveDriveConfig
@@ -64,12 +60,6 @@ public class Configs {
                 0,
                 KinematicsConstants.ANGLE_CONVERSION_FACTOR
             );
-
-        imuConfig.Pigeon2Features.withEnableCompass(false)
-            .withDisableNoMotionCalibration(false)
-            .withDisableTemperatureCompensation(false);
-
-        //imuConfig.GyroTrim.withGyroScalarZ(180);
 
         elevatorConfig
             .idleMode(IdleMode.kBrake)
