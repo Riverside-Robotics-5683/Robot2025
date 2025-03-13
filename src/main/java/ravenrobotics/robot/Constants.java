@@ -175,10 +175,10 @@ public class Constants {
         public static final double SPEED_LIMIT = 0;
 
         public static final double ELEVATOR_L4 = 77.727;
-        public static final double ELEVATOR_L3 = 45.430;
-        public static final double ELEVATOR_L2 = 22.402;
+        public static final double ELEVATOR_L3 = 51.48855972290039;
+        public static final double ELEVATOR_L2 = 30.2080078125;
         public static final double ELEVATOR_L1 = 5.9670763016;
-        public static final double ELEVATOR_FEED = 16.843;
+        public static final double ELEVATOR_FEED = 1.91;
     }
 
     /**
@@ -186,17 +186,8 @@ public class Constants {
      */
     public static class IntakeConstants {
 
-        // The CAN ID of the motor for controlling the intake angle.
-        public static final int FLIPPER = 11;
         // The CAN ID of the motor for intaking/outaking game pieces.
-        public static final int ROLLERS = 12;
-
-        public static final double INTAKE_ANGLE_DEFAULT = 0; // Default intake arm angle.
-        public static final double INTAKE_ANGLE_L1 = 0.9988839030265808; // Level 1 intake arm angle.
-        public static final double INTAKE_ANGLE_L2 = 1.0859375; // Level 2 intake arm angle.
-        public static final double INTAKE_ANGLE_L3 = 1.1277902126312256; // Level 3 intake arm angle.
-        public static final double INTAKE_ANGLE_L4 = 1.1350446939468384; // Level 4 intake arm angle.
-        public static final double INTAKE_ANGLE_FEED = 0.5069754719734192; // Feed angle.
+        public static final int ROLLERS = 11;
     }
 
     public static class ClimberConstants {
@@ -223,5 +214,31 @@ public class Constants {
                 e.printStackTrace();
             }
         }
+    }
+
+    public static class VisionConstants {
+
+        public static double[] DEFAULT_CAMERA_MATRIX = {
+            650.0,
+            0.0,
+            320.0,
+            0.0,
+            650.0,
+            240.0,
+            0.0,
+            0.0,
+            1.0,
+        };
+
+        public static double[] DEFAULT_DISTORTION_MATRIX = {
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+        };
     }
 }

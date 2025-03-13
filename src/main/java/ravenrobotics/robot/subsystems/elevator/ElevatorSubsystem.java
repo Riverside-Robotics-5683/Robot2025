@@ -3,12 +3,15 @@ package ravenrobotics.robot.subsystems.elevator;
 import static ravenrobotics.robot.Configs.elevatorConfig;
 
 import com.revrobotics.RelativeEncoder;
+import com.revrobotics.spark.ClosedLoopSlot;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkClosedLoopController.ArbFFUnits;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import edu.wpi.first.math.controller.ElevatorFeedforward;
 import edu.wpi.first.units.Units;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotController;
@@ -39,6 +42,8 @@ public class ElevatorSubsystem extends SubsystemBase {
     private final RelativeEncoder rightEncoder;
 
     private final SparkClosedLoopController elevatorController;
+    private final ElevatorFeedforward elevatorFeedforward =
+        new ElevatorFeedforward(0.42516, 1.2719, 0.1016);
 
     private double targetPosition;
 
@@ -108,14 +113,25 @@ public class ElevatorSubsystem extends SubsystemBase {
      * @param position
      */
     private void setPosition(double position) {
-        if (position < targetPosition) {
-            elevatorController.setReference(position, ControlType.kPosition);
-        } else {
-            elevatorController.setReference(
-                position,
-                ControlType.kMAXMotionPositionControl
-            );
-        }
+        // if (position < targetPosition) {
+        //     elevatorController.setReference(position, ControlType.kPosition);
+        // } else {
+        //     elevatorController.setReference(
+        //         position,
+        //         ControlType.kMAXMotionPositionControl
+        //     );
+        // }
+
+        double arbFF = elevatorFeedforward.calculate(leftEncoder.getVelocity());
+
+        elevatorController.setReference(
+            position,
+            ControlType.kMAXMotionPositionControl,
+            ClosedLoopSlot.kSlot0,
+            arbFF,
+            ArbFFUnits.kVoltage
+        );
+
         targetPosition = position;
     }
 

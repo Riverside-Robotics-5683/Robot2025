@@ -42,6 +42,11 @@ public class AlignToReefCommand extends Command {
     }
 
     @Override
+    public void initialize() {
+        System.out.println("Ye");
+    }
+
+    @Override
     public void execute() {
         var results = visionSubsystem.getLeftAprilTags();
 
@@ -57,10 +62,18 @@ public class AlignToReefCommand extends Command {
             return;
         }
 
-        PhotonTrackedTarget biggestTag = aprilTags.get(0);
+        PhotonTrackedTarget biggestTag = aprilTags.get(aprilTags.size() - 1);
 
         Transform3d tagPosition = biggestTag.getBestCameraToTarget();
         Rotation3d tagRotation = tagPosition.getRotation();
+
+        System.out.println(
+            tagPosition.getX() +
+            "\n" +
+            tagPosition.getY() +
+            "\n" +
+            tagRotation.getZ()
+        );
 
         double sideCommand = sideController.calculate(
             tagPosition.getMeasureY().in(Units.Meter),
@@ -71,15 +84,16 @@ public class AlignToReefCommand extends Command {
             tagPosition.getMeasureX().in(Units.Meter),
             0.5
         );
-        double yawCommand = yawController.calculate(tagRotation.getZ(), 0);
+        double yawCommand =
+            yawController.calculate(tagRotation.getZ(), 0) * 0.5;
 
-        if (sideCommand < 0.1 && rangeCommand < 0.1 && yawCommand < 0.1) {
-            isDone = true;
-        }
+        // if (sideCommand < 0.1 && rangeCommand < 0.1 && yawCommand < 0.1) {
+        //     isDone = true;
+        // }
 
-        driveSubsystem.run(
-            new ChassisSpeeds(rangeCommand, sideCommand, yawCommand)
-        );
+        System.out.println("Running drive command");
+
+        driveSubsystem.run(new ChassisSpeeds(rangeCommand, sideCommand, 0));
     }
 
     @Override

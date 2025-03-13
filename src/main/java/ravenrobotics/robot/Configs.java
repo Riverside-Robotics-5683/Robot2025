@@ -16,8 +16,7 @@ public class Configs {
 
     public static SparkFlexConfig elevatorConfig = new SparkFlexConfig();
 
-    public static SparkFlexConfig flipperConfig = new SparkFlexConfig();
-    public static SparkMaxConfig rollerConfig = new SparkMaxConfig();
+    public static SparkFlexConfig rollerConfig = new SparkFlexConfig();
 
     public static SparkFlexConfig climberConfig = new SparkFlexConfig();
 
@@ -64,28 +63,18 @@ public class Configs {
         elevatorConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(ElevatorConstants.ELEAVTOR_LIMIT)
-            .closedLoopRampRate(0.5);
+            .closedLoopRampRate(0.25);
         elevatorConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(1.0, 0, 0)
-            .outputRange(-0.25, 1);
-        elevatorConfig.encoder.velocityConversionFactor(1.0 / 60.0);
+            .pid(1.0, 0.02, 0.)
+            .outputRange(-0.75, 1);
+        //elevatorConfig.encoder.velocityConversionFactor(1.0 / 60.0);
 
         elevatorConfig.closedLoop.maxMotion
             .maxVelocity(3200)
             .maxAcceleration(6000);
 
-        flipperConfig.idleMode(IdleMode.kBrake).smartCurrentLimit(40);
-        flipperConfig.closedLoop
-            .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(0.5, 0, 0.2)
-            .outputRange(-1, 1);
-
-        rollerConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(15);
-
-        rollerConfig.encoder
-            .positionConversionFactor(44.0 / 36.0)
-            .velocityConversionFactor(44.0 / 36.0);
+        rollerConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(25);
 
         climberConfig
             .idleMode(IdleMode.kCoast)

@@ -97,7 +97,7 @@ public class DriveCommand extends Command {
             xSpeed,
             ySpeed,
             zSpeed,
-            driveSubsystem.getHeading()
+            driveSubsystem.getFusedHeading()
         ); // Convert the speeds from the joysticks to a field-relative ChassisSpeeds,
         // using the current heading.
 
