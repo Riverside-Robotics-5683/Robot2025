@@ -22,9 +22,9 @@ public class Constants {
             0.05, // X-axis deadband.
             0.05, // Y-axis deadband.
             0.05, // Z-axis deadband.
-            10, // X-axis acceleration.
-            7, // Y-axis acceleration.
-            10
+            75, // X-axis acceleration.
+            75, // Y-axis acceleration.
+            75
         ); // Z-axis acceleration.
     }
 

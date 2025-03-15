@@ -11,7 +11,6 @@ import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import ravenrobotics.robot.Constants.DSConstants;
-import ravenrobotics.robot.commands.AlignToReefCommand;
 import ravenrobotics.robot.commands.DriveCommand;
 import ravenrobotics.robot.commands.MoveAuto;
 import ravenrobotics.robot.subsystems.climber.ClimberSubsystem;
@@ -20,6 +19,7 @@ import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem;
 import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem.ElevatorPosition;
 import ravenrobotics.robot.subsystems.intake.IntakeSubsystem;
 import ravenrobotics.robot.subsystems.vision.VisionSubsystem;
+import ravenrobotics.robot.subsystems.vision.VisionSubsystem.AlignmentTarget;
 
 public class RobotContainer {
 
@@ -97,7 +97,27 @@ public class RobotContainer {
     }
 
     public Command getTestCommand() {
-        systemsController.x().onTrue(new AlignToReefCommand());
+        systemsController
+            .x()
+            .onTrue(
+                VisionSubsystem.getInstance()
+                    .getAlignmentCommand(
+                        AlignmentTarget.kReef,
+                        DriveSubsystem.getInstance().getPose2d()
+                    )
+                    .orElse(null)
+            );
+
+        systemsController
+            .y()
+            .onTrue(
+                VisionSubsystem.getInstance()
+                    .getAlignmentCommand(
+                        AlignmentTarget.kCoralStation,
+                        DriveSubsystem.getInstance().getPose2d()
+                    )
+                    .orElse(null)
+            );
 
         systemsController
             .povUp()

@@ -204,14 +204,18 @@ public class SwerveModule {
 
         correctedState.optimize(new Rotation2d(angleEncoder.getPosition())); // Optimize the path of travel.
 
-        // Update the motor targets.
-        driveController.setReference(
-            correctedState.speedMetersPerSecond,
-            ControlType.kVelocity
-        );
-        // driveMotor.set(
-        //     state.speedMetersPerSecond / KinematicsConstants.MAX_MODULE_SPEED
-        // );
+        if (correctedState.speedMetersPerSecond != 0) {
+            // Update the motor targets.
+            driveController.setReference(
+                correctedState.speedMetersPerSecond,
+                ControlType.kVelocity
+            );
+            // driveMotor.set(
+            //     state.speedMetersPerSecond / KinematicsConstants.MAX_MODULE_SPEED
+            // );
+        } else {
+            driveMotor.stopMotor();
+        }
         angleController.setReference(
             correctedState.angle.getRadians(),
             ControlType.kPosition

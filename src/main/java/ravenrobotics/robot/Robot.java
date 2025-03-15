@@ -24,7 +24,6 @@ public class Robot extends LoggedRobot {
 
     // line 33 if it wasn't being created in a variable.
 
-    @SuppressWarnings("unused")
     private final RobotContainer robotContainer;
 
     /**

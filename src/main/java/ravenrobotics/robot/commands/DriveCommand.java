@@ -53,9 +53,9 @@ public class DriveCommand extends Command {
         deadbands = profile.getDeadbands(); // Get the deadbands from the driver profile.
 
         // Create the SlewRateLimiters for each axis using the deadbands.
-        this.xLimiter = new SlewRateLimiter(rateLimits[0], -100.0, 0.0);
-        this.yLimiter = new SlewRateLimiter(rateLimits[1], -100.0, 0.0);
-        this.zLimiter = new SlewRateLimiter(rateLimits[2], -100.0, 0.0);
+        this.xLimiter = new SlewRateLimiter(rateLimits[0], -rateLimits[0], 0.0);
+        this.yLimiter = new SlewRateLimiter(rateLimits[1], -rateLimits[1], 0.0);
+        this.zLimiter = new SlewRateLimiter(rateLimits[2], -rateLimits[2], 0.0);
 
         this.driveSubsystem = DriveSubsystem.getInstance(); // Get the active DriveSubsystem instance.
         addRequirements(this.driveSubsystem); // Add the DriveSubsystem as a requirement, so that no other commands access
@@ -92,6 +92,18 @@ public class DriveCommand extends Command {
             MathUtil.applyDeadband(zSupplier.getAsDouble(), deadbands[2]) *
             currentMaxSpeed
         );
+
+        if (xSpeed == 0) {
+            xLimiter.reset(0);
+        }
+
+        if (ySpeed == 0) {
+            yLimiter.reset(0);
+        }
+
+        if (zSpeed == 0) {
+            zLimiter.reset(0);
+        }
 
         ChassisSpeeds driveSpeeds = ChassisSpeeds.fromFieldRelativeSpeeds(
             xSpeed,

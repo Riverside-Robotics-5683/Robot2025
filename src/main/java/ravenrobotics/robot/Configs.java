@@ -24,7 +24,7 @@ public class Configs {
         swerveDriveConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(SwerveModuleConstants.DRIVE_LIMIT)
-            .closedLoopRampRate(1.5);
+            .closedLoopRampRate(0.1);
         swerveAngleConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(SwerveModuleConstants.ANGLE_LIMIT);
@@ -67,7 +67,7 @@ public class Configs {
         elevatorConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
             .pid(1.0, 0.02, 0.)
-            .outputRange(-0.75, 1);
+            .outputRange(-0.5, 1);
         //elevatorConfig.encoder.velocityConversionFactor(1.0 / 60.0);
 
         elevatorConfig.closedLoop.maxMotion
