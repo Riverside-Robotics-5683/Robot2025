@@ -14,12 +14,10 @@ import ravenrobotics.robot.Constants.DSConstants;
 import ravenrobotics.robot.commands.AlignToReefCommand;
 import ravenrobotics.robot.commands.DriveCommand;
 import ravenrobotics.robot.commands.MoveAuto;
-import ravenrobotics.robot.subsystems.climber.ClimberSubsystem;
 import ravenrobotics.robot.subsystems.drive.DriveSubsystem;
 import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem;
 import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem.ElevatorPosition;
 import ravenrobotics.robot.subsystems.intake.IntakeSubsystem;
-import ravenrobotics.robot.subsystems.intake.IntakeSubsystem.IntakeAngle;
 import ravenrobotics.robot.subsystems.vision.VisionSubsystem;
 
 public class RobotContainer {
@@ -46,9 +44,7 @@ public class RobotContainer {
     private final Command station2L1 = new ParallelCommandGroup(
         new MoveAuto(1.5, 1.5),
         ElevatorSubsystem.getInstance().setElevatorPosition(ElevatorPosition.L1)
-    )
-        .andThen(IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L1))
-        .andThen(IntakeSubsystem.getInstance().outtakeCoralL1());
+    ).andThen(IntakeSubsystem.getInstance().outtakeCoralL1());
 
     private SendableChooser<Integer> modeChooser = new SendableChooser<
         Integer
@@ -72,7 +68,7 @@ public class RobotContainer {
                     )
             );
         IntakeSubsystem.getInstance();
-        ClimberSubsystem.getInstance();
+        //ClimberSubsystem.getInstance();
 
         DriveSubsystem.getInstance().resetHeading().schedule();
 
@@ -100,7 +96,13 @@ public class RobotContainer {
     }
 
     public Command getTestCommand() {
-        systemsController.x().onTrue(new AlignToReefCommand());
+        systemsController
+            .back()
+            .onTrue(DriveSubsystem.getInstance().resetHeading());
+
+        systemsController
+            .start()
+            .onTrue(DriveSubsystem.getInstance().resetPoseEstimationToVision());
 
         systemsController
             .povUp()
@@ -166,31 +168,6 @@ public class RobotContainer {
         );
 
         NamedCommands.registerCommand(
-            "intakeL1",
-            IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L1)
-        );
-        NamedCommands.registerCommand(
-            "intakeL2",
-            IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L2)
-        );
-        NamedCommands.registerCommand(
-            "intakeL3",
-            IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L3)
-        );
-        NamedCommands.registerCommand(
-            "intakeL4",
-            IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L4)
-        );
-        NamedCommands.registerCommand(
-            "intakeFeed",
-            IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.FEED)
-        );
-        NamedCommands.registerCommand(
-            "intakeClosed",
-            IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.DEFAULT)
-        );
-
-        NamedCommands.registerCommand(
             "intakeCoral",
             IntakeSubsystem.getInstance().intakeCoral()
         );
@@ -231,22 +208,11 @@ public class RobotContainer {
             .back()
             .onTrue(DriveSubsystem.getInstance().resetHeading());
 
-        // Driver climber up.
         driverController
-            .rightTrigger(0.5)
-            .whileTrue(ClimberSubsystem.getInstance().setPower(1));
-        // Driver climber down.
-        driverController
-            .leftTrigger(0.5)
-            .whileTrue(ClimberSubsystem.getInstance().setPower(-1));
+            .start()
+            .onTrue(DriveSubsystem.getInstance().resetPoseEstimationToVision());
 
-        // Driver set climber hold.
-        driverController.b().onTrue(ClimberSubsystem.getInstance().setHold());
-
-        // Driver cancel hold.
-        driverController
-            .x()
-            .onTrue(ClimberSubsystem.getInstance().cancelHold());
+        driverController.x().onTrue(new AlignToReefCommand());
 
         // Systems set elevator to L4.
         systemsController
@@ -287,38 +253,6 @@ public class RobotContainer {
             .onTrue(
                 ElevatorSubsystem.getInstance()
                     .setElevatorPosition(ElevatorPosition.FEED)
-            );
-
-        systemsController
-            .povUp()
-            .onTrue(
-                IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L4)
-            );
-        systemsController
-            .povLeft()
-            .onTrue(
-                IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L3)
-            );
-        systemsController
-            .povRight()
-            .onTrue(
-                IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L2)
-            );
-        systemsController
-            .povDown()
-            .onTrue(
-                IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.L1)
-            );
-        systemsController
-            .start()
-            .onTrue(
-                IntakeSubsystem.getInstance()
-                    .setIntakeAngle(IntakeAngle.DEFAULT)
-            );
-        systemsController
-            .back()
-            .onTrue(
-                IntakeSubsystem.getInstance().setIntakeAngle(IntakeAngle.FEED)
             );
 
         systemsController
