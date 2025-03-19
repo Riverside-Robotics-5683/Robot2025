@@ -28,7 +28,7 @@ import ravenrobotics.robot.Constants.ElevatorConstants;
  */
 public class ElevatorSubsystem extends SubsystemBase {
 
-    //Elevator motors
+    // Elevator motors
     private final SparkFlex leftMotor = new SparkFlex(
         ElevatorConstants.ELEVATOR_LEFT,
         MotorType.kBrushless
@@ -38,17 +38,23 @@ public class ElevatorSubsystem extends SubsystemBase {
         MotorType.kBrushless
     );
 
+    // Encoders to track elevator position and velocity
     private final RelativeEncoder leftEncoder;
     private final RelativeEncoder rightEncoder;
 
+    // Controller for closed-loop control of the elevator
     private final SparkClosedLoopController elevatorController;
+    // Feedforward controller to compensate for gravity and friction
     private final ElevatorFeedforward elevatorFeedforward =
         new ElevatorFeedforward(0.42516, 1.2719, 0.1016);
 
+    // Target position for the elevator in encoder units
     private double targetPosition;
 
+    // Structure to log elevator data
     private ElevatorInputsAutoLogged elevatorInputs;
 
+    // System identification routine for tuning
     private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
         new SysIdRoutine.Config(null, null, null, state ->
             Logger.recordOutput("SysIDState", state.toString())
@@ -65,24 +71,32 @@ public class ElevatorSubsystem extends SubsystemBase {
         )
     );
 
+    // Singleton instance of the elevator subsystem
     private static ElevatorSubsystem instance;
 
+    /**
+     * Gets the singleton instance of the ElevatorSubsystem
+     * @return The elevator subsystem instance
+     */
     public static ElevatorSubsystem getInstance() {
         if (instance == null) {
-            //if instance hasn't been made yet, make it
+            // If instance hasn't been made yet, make it
             instance = new ElevatorSubsystem();
         }
-        return instance; //return instance
+        return instance; // Return instance
     }
 
+    /**
+     * Private constructor to enforce singleton pattern
+     */
     private ElevatorSubsystem() {
-        //get encoder
+        // Get encoders from motors
         leftEncoder = leftMotor.getEncoder();
         rightEncoder = rightMotor.getEncoder();
 
         elevatorController = leftMotor.getClosedLoopController();
 
-        //configuring motors
+        // Configure motors with appropriate parameters
         leftMotor.configure(
             elevatorConfig,
             ResetMode.kResetSafeParameters,
@@ -94,23 +108,34 @@ public class ElevatorSubsystem extends SubsystemBase {
             PersistMode.kPersistParameters
         );
 
+        // Reset encoder positions to zero
         leftEncoder.setPosition(0);
         rightEncoder.setPosition(0);
 
         elevatorInputs = new ElevatorInputsAutoLogged();
     }
 
+    /**
+     * Creates a command to run a quasistatic system identification test
+     * @param direction Direction to move the elevator during the test
+     * @return Command for the test
+     */
     public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
         return sysIdRoutine.quasistatic(direction);
     }
 
+    /**
+     * Creates a command to run a dynamic system identification test
+     * @param direction Direction to move the elevator during the test
+     * @return Command for the test
+     */
     public Command sysIdDynamic(SysIdRoutine.Direction direction) {
         return sysIdRoutine.dynamic(direction);
     }
 
     /**
      * Set the elevator position
-     * @param position
+     * @param position Target position in encoder units
      */
     private void setPosition(double position) {
         // if (position < targetPosition) {
@@ -122,8 +147,10 @@ public class ElevatorSubsystem extends SubsystemBase {
         //     );
         // }
 
+        // Calculate feedforward term to compensate for gravity
         double arbFF = elevatorFeedforward.calculate(leftEncoder.getVelocity());
 
+        // Set the reference position with feedforward
         elevatorController.setReference(
             position,
             ControlType.kMAXMotionPositionControl,
@@ -132,19 +159,26 @@ public class ElevatorSubsystem extends SubsystemBase {
             ArbFFUnits.kVoltage
         );
 
+        // Update the target position
         targetPosition = position;
     }
 
+    /**
+     * Enum defining preset elevator positions
+     */
     public enum ElevatorPosition {
-        CLOSED,
-        L1,
-        L2,
-        L3,
-        L4,
-        FEED,
-        //setting the positions
+        CLOSED, // Fully retracted
+        L1, // Level 1
+        L2, // Level 2
+        L3, // Level 3
+        L4, // Level 4
+        FEED, // Feeding position
     }
 
+    /**
+     * Sets the elevator to a preset position
+     * @param position The preset position to move to
+     */
     private void setPosition(ElevatorPosition position) {
         switch (position) {
             case CLOSED:
@@ -168,15 +202,27 @@ public class ElevatorSubsystem extends SubsystemBase {
         }
     }
 
+    /**
+     * Sets the raw power to the elevator motors
+     * @param power Power value (-1.0 to 1.0)
+     */
     private void setPower(double power) {
         leftMotor.set(power);
     }
 
+    /**
+     * Checks if the elevator is extended beyond level 2
+     * @return True if elevator is past L2 position
+     */
     public boolean isElevatorPastLimit() {
         return leftEncoder.getPosition() > ElevatorConstants.ELEVATOR_L2;
-        //test if elevator is past limit, and add a limit
+        // Test if elevator is past limit, and add a limit
     }
 
+    /**
+     * Checks if the elevator is at the L1 position
+     * @return True if elevator is between 0 and L2
+     */
     public boolean isElevatorAtL1() {
         return (
             leftEncoder.getPosition() > 0 &&
@@ -184,32 +230,57 @@ public class ElevatorSubsystem extends SubsystemBase {
         );
     }
 
+    /**
+     * Checks if the elevator is at the target position within tolerance
+     * @param tolerance Maximum allowable error
+     * @return True if elevator is at target position
+     */
     public boolean isElevatorAtPosition(double tolerance) {
         var currentPosition = leftEncoder.getPosition();
         var difference = Math.abs(currentPosition - targetPosition);
         return difference <= tolerance;
     }
 
+    /**
+     * Checks if the elevator is at target position with default tolerance
+     * @return True if elevator is at target position
+     */
     public boolean isElevatorAtPosition() {
         return isElevatorAtPosition(0.1);
     }
 
+    /**
+     * Creates a command to set the elevator to a preset position and wait until it arrives
+     * @param position The preset position to move to
+     * @return Command to move to position
+     */
     public Command setElevatorPosition(ElevatorPosition position) {
         return this.runOnce(() -> setPosition(position)).andThen(
                 new WaitUntilCommand(() -> isElevatorAtPosition(2))
             );
     }
 
+    /**
+     * Creates a command to set a raw power to the elevator momentarily
+     * @param power Power value (-1.0 to 1.0)
+     * @return Command to apply power
+     */
     public Command rawElevatorPower(double power) {
         return this.runOnce(() -> setPower(power)).finallyDo(() -> setPower(0));
     }
 
+    /**
+     * Creates a command to control the elevator with a power supplier
+     * @param power Supplier of power values
+     * @return Command to continuously apply power
+     */
     public Command rawElevatorPower(DoubleSupplier power) {
         return this.run(() -> setPower(power.getAsDouble()));
     }
 
     @Override
     public void periodic() {
+        // Update logged data from left motor
         elevatorInputs.leftMotorPosition = leftEncoder.getPosition();
         elevatorInputs.leftMotorVelocity = leftEncoder.getVelocity();
 
@@ -217,6 +288,7 @@ public class ElevatorSubsystem extends SubsystemBase {
             leftMotor.get() * RobotController.getBatteryVoltage();
         elevatorInputs.leftMotorCurrent = leftMotor.getOutputCurrent();
 
+        // Update logged data from right motor
         elevatorInputs.rightMotorPosition = rightEncoder.getPosition();
         elevatorInputs.rightMotorVelocity = rightEncoder.getVelocity();
 
@@ -224,9 +296,10 @@ public class ElevatorSubsystem extends SubsystemBase {
             rightMotor.get() * RobotController.getBatteryVoltage();
         elevatorInputs.rightMotorCurrent = rightMotor.getOutputCurrent();
 
+        // Save target position for logging
         elevatorInputs.targetPosition = targetPosition;
 
+        // Send all inputs to logger
         Logger.processInputs("/Elevator", elevatorInputs);
     }
-    //unc status
 }

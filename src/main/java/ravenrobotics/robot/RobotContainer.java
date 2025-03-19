@@ -11,15 +11,14 @@ import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import ravenrobotics.robot.Constants.DSConstants;
+import ravenrobotics.robot.commands.AlignToReefCommand;
 import ravenrobotics.robot.commands.DriveCommand;
 import ravenrobotics.robot.commands.MoveAuto;
-import ravenrobotics.robot.subsystems.climber.ClimberSubsystem;
 import ravenrobotics.robot.subsystems.drive.DriveSubsystem;
 import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem;
 import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem.ElevatorPosition;
 import ravenrobotics.robot.subsystems.intake.IntakeSubsystem;
 import ravenrobotics.robot.subsystems.vision.VisionSubsystem;
-import ravenrobotics.robot.subsystems.vision.VisionSubsystem.AlignmentTarget;
 
 public class RobotContainer {
 
@@ -98,26 +97,12 @@ public class RobotContainer {
 
     public Command getTestCommand() {
         systemsController
-            .x()
-            .onTrue(
-                VisionSubsystem.getInstance()
-                    .getAlignmentCommand(
-                        AlignmentTarget.kReef,
-                        DriveSubsystem.getInstance().getPose2d()
-                    )
-                    .orElse(null)
-            );
+            .back()
+            .onTrue(DriveSubsystem.getInstance().resetHeading());
 
         systemsController
-            .y()
-            .onTrue(
-                VisionSubsystem.getInstance()
-                    .getAlignmentCommand(
-                        AlignmentTarget.kCoralStation,
-                        DriveSubsystem.getInstance().getPose2d()
-                    )
-                    .orElse(null)
-            );
+            .start()
+            .onTrue(DriveSubsystem.getInstance().resetPoseEstimationToVision());
 
         systemsController
             .povUp()
@@ -223,22 +208,11 @@ public class RobotContainer {
             .back()
             .onTrue(DriveSubsystem.getInstance().resetHeading());
 
-        // Driver climber up.
         driverController
-            .rightTrigger(0.5)
-            .whileTrue(ClimberSubsystem.getInstance().setPower(1));
-        // Driver climber down.
-        driverController
-            .leftTrigger(0.5)
-            .whileTrue(ClimberSubsystem.getInstance().setPower(-1));
+            .start()
+            .onTrue(DriveSubsystem.getInstance().resetPoseEstimationToVision());
 
-        // Driver set climber hold.
-        driverController.b().onTrue(ClimberSubsystem.getInstance().setHold());
-
-        // Driver cancel hold.
-        driverController
-            .x()
-            .onTrue(ClimberSubsystem.getInstance().cancelHold());
+        driverController.x().onTrue(new AlignToReefCommand());
 
         // Systems set elevator to L4.
         systemsController

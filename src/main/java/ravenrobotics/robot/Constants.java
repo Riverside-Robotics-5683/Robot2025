@@ -174,10 +174,10 @@ public class Constants {
         public static final int ELEAVTOR_LIMIT = 40;
         public static final double SPEED_LIMIT = 0;
 
-        public static final double ELEVATOR_L4 = 77.727;
-        public static final double ELEVATOR_L3 = 51.48855972290039;
-        public static final double ELEVATOR_L2 = 30.2080078125;
-        public static final double ELEVATOR_L1 = 5.9670763016;
+        public static final double ELEVATOR_L4 = 89.99;
+        public static final double ELEVATOR_L3 = 60;
+        public static final double ELEVATOR_L2 = 35.5;
+        public static final double ELEVATOR_L1 = 30.208;
         public static final double ELEVATOR_FEED = 1.91;
     }
 

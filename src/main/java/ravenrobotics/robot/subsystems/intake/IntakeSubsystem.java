@@ -7,7 +7,6 @@ import com.revrobotics.spark.SparkFlex;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
-import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import org.littletonrobotics.junction.Logger;
 import ravenrobotics.robot.Configs;
 import ravenrobotics.robot.Constants.IntakeConstants;
@@ -21,10 +20,13 @@ public class IntakeSubsystem extends SubsystemBase {
         SparkFlex.MotorType.kBrushless
     );
 
+    // Encoder to track the roller motor's position and velocity
     private final RelativeEncoder rollerEncoder = rollerMotor.getEncoder();
 
+    // Logged inputs for telemetry and debugging
     private IntakeInputsAutoLogged intakeInputs = new IntakeInputsAutoLogged();
 
+    // Singleton instance
     private static IntakeSubsystem instance;
 
     /**
@@ -41,6 +43,7 @@ public class IntakeSubsystem extends SubsystemBase {
         return instance;
     }
 
+    // Private constructor for singleton pattern
     private IntakeSubsystem() {
         rollerMotor.configure(
             Configs.rollerConfig,
@@ -58,6 +61,12 @@ public class IntakeSubsystem extends SubsystemBase {
         rollerMotor.set(power);
     }
 
+    /**
+     * Determines if a coral (game piece) is in the intake
+     * by checking motor current and velocity.
+     *
+     * @return true if coral is detected in the intake
+     */
     public boolean isCoralInIntake() {
         return (
             rollerMotor.getOutputCurrent() > 10 &&
@@ -77,16 +86,27 @@ public class IntakeSubsystem extends SubsystemBase {
             );
     }
 
+    /**
+     * Creates a command to intake a coral (game piece)
+     *
+     * @return Command that runs the rollers to intake a coral
+     */
     public Command intakeCoral() {
         return this.runOnce(() -> setRollerPower(-0.5))
-            .andThen(new WaitCommand(0.5))
+            .andThen(new WaitCommand(0.255))
             .finallyDo(() -> setRollerPower(0));
     }
 
+    /**
+     * Creates a command to outtake a coral (game piece)
+     * Uses different parameters based on elevator position
+     *
+     * @return Command that runs the rollers to outtake a coral
+     */
     public Command outtakeCoral() {
         if (!ElevatorSubsystem.getInstance().isElevatorAtL1()) {
             return this.runOnce(() -> setRollerPower(-1))
-                .andThen(new WaitCommand(1.5))
+                .andThen(new WaitCommand(0.75))
                 .finallyDo(() -> setRollerPower(0));
         } else {
             System.out.println("L1 Out");
@@ -94,6 +114,11 @@ public class IntakeSubsystem extends SubsystemBase {
         }
     }
 
+    /**
+     * Creates a command to outtake a coral when at level 1
+     *
+     * @return Command that runs rollers to outtake a coral at level 1
+     */
     public Command outtakeCoralL1() {
         return this.runOnce(() -> setRollerPower(-1))
             .andThen(new WaitCommand(1.5))

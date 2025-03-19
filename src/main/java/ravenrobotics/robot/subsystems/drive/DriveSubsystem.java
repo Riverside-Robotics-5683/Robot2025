@@ -26,6 +26,7 @@ import org.photonvision.EstimatedRobotPose;
 import ravenrobotics.robot.Constants.AutoConstants;
 import ravenrobotics.robot.Constants.KinematicsConstants;
 import ravenrobotics.robot.Constants.SwerveModuleKeys;
+import ravenrobotics.robot.subsystems.vision.VisionSubsystem;
 
 /**
  * Subsystem for controlling the drive base.
@@ -174,6 +175,10 @@ public class DriveSubsystem extends SubsystemBase {
         return imuInputs.imuHeading;
     }
 
+    public Rotation2d getRawHeading() {
+        return Rotation2d.fromDegrees(imuInputs.imuRawYaw);
+    }
+
     /**
      * Get the robot's current heading from the drive base and PhotonVision.
      *
@@ -256,6 +261,17 @@ public class DriveSubsystem extends SubsystemBase {
                 measurement.timestampSeconds
             );
         }
+    }
+
+    public Command resetPoseEstimationToVision() {
+        return this.runOnce(() -> {
+                var poseOptional = VisionSubsystem.getInstance()
+                    .getMeanEstimatedPose();
+
+                if (poseOptional.isPresent()) {
+                    estimatedPose.resetPose(poseOptional.get());
+                }
+            });
     }
 
     @Override

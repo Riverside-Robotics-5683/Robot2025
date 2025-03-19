@@ -1,25 +1,16 @@
 package ravenrobotics.robot.subsystems.vision;
 
-import com.pathplanner.lib.auto.AutoBuilder;
-import com.pathplanner.lib.auto.AutoBuilderException;
-import com.pathplanner.lib.path.GoalEndState;
-import com.pathplanner.lib.path.PathConstraints;
-import com.pathplanner.lib.path.PathPlannerPath;
-import com.pathplanner.lib.path.Waypoint;
 import edu.wpi.first.apriltag.AprilTagFieldLayout;
 import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import org.littletonrobotics.junction.Logger;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
@@ -71,6 +62,9 @@ public class VisionSubsystem extends SubsystemBase {
     private List<PhotonPipelineResult> rightResults = new ArrayList<>();
     private List<PhotonPipelineResult> coralResults = new ArrayList<>();
 
+    private EstimatedRobotPose leftEstimatedPose;
+    private EstimatedRobotPose rightEstimatedPose;
+
     public enum AlignmentTarget {
         kReef,
         kCoralStation,
@@ -93,6 +87,12 @@ public class VisionSubsystem extends SubsystemBase {
         return instance;
     }
 
+    /**
+     * Retrieves AprilTags detected by the left camera.
+     *
+     * @return An Optional containing a list of PhotonTrackedTargets if available,
+     *         or empty if no results exist
+     */
     public Optional<List<PhotonTrackedTarget>> getLeftAprilTags() {
         if (leftResults.isEmpty()) {
             return Optional.empty();
@@ -103,6 +103,13 @@ public class VisionSubsystem extends SubsystemBase {
         );
     }
 
+    /**
+     * Retrieves coral targets detected by the coral camera.
+     *
+     * @return An Optional containing a list of PhotonTrackedTargets if available,
+     *         or empty if no results exist
+     * @throws IllegalAccessException If the coral camera is not set to the coral pipeline
+     */
     public Optional<List<PhotonTrackedTarget>> getVisibleCoral()
         throws IllegalAccessException {
         if (coralCamera.getPipelineIndex() != 0) {
@@ -120,6 +127,13 @@ public class VisionSubsystem extends SubsystemBase {
         );
     }
 
+    /**
+     * Retrieves AprilTags detected by the coral camera.
+     *
+     * @return An Optional containing a list of PhotonTrackedTargets if available,
+     *         or empty if no results exist
+     * @throws IllegalAccessException If the coral camera is not set to the AprilTag pipeline
+     */
     public Optional<List<PhotonTrackedTarget>> getCoralAprilTags()
         throws IllegalAccessException {
         if (coralCamera.getPipelineIndex() != 1) {
@@ -137,211 +151,116 @@ public class VisionSubsystem extends SubsystemBase {
         );
     }
 
+    /**
+     * Sets the coral camera pipeline to detect coral.
+     */
     public void setCoralToCoral() {
         coralCamera.setPipelineIndex(0);
     }
 
+    /**
+     * Sets the coral camera pipeline to detect AprilTags.
+     */
     public void setCoralToAprilTags() {
         coralCamera.setPipelineIndex(1);
     }
 
+    public AprilTagFieldLayout getFieldLayout() {
+        return fieldLayout;
+    }
+
+    /**
+     * Checks if the coral camera is currently set to detect AprilTags.
+     *
+     * @return true if the coral camera is set to the AprilTag pipeline, false otherwise
+     */
     public boolean isCoralCameraAprilTags() {
         return coralCamera.getPipelineIndex() == 1;
     }
 
     /**
-     * Creates a command to automatically align the robot with a specified target.
+     * Calculates the mean (average) estimated pose between left and right camera pose estimations.
      *
-     * <p>This method finds AprilTags associated with the requested target type (reef or coral station),
-     * calculates the optimal position for alignment, and generates a path-following command to
-     * navigate there.
-     *
-     * @param target The type of game element to align with (Reef or Coral Station)
-     * @param currentPose The robot's current position on the field
-     * @return An Optional containing the path-following command if a valid alignment target was found,
-     *         or empty if no valid targets were detected
+     * @return An Optional containing the interpolated Pose3d if at least one valid pose exists,
+     *         or an empty Optional if no valid poses are available
      */
-    public Optional<Command> getAlignmentCommand(
-        AlignmentTarget target,
-        Pose2d currentPose
-    ) {
-        // Set coral camera to detect AprilTags
-        setCoralToAprilTags();
+    public Optional<Pose3d> getMeanEstimatedPose() {
+        // Extract poses from EstimatedRobotPose objects, handling null cases
+        Pose3d leftPose = leftEstimatedPose != null
+            ? leftEstimatedPose.estimatedPose
+            : null;
 
-        Optional<List<PhotonTrackedTarget>> aprilTagsOptional =
-            Optional.empty();
+        Pose3d rightPose = rightEstimatedPose != null
+            ? rightEstimatedPose.estimatedPose
+            : null;
 
-        int errorCounter = 0;
-
-        // Get AprilTag data from the appropriate camera based on target type
-        switch (target) {
-            case kReef:
-                // For reef alignment, use the left camera
-                aprilTagsOptional = getLeftAprilTags();
-                break;
-            case kCoralStation:
-                // For coral station alignment, use the coral camera
-                // Try up to 10 times to get valid data
-                while (aprilTagsOptional.isEmpty()) {
-                    try {
-                        aprilTagsOptional = getCoralAprilTags();
-                    } catch (IllegalAccessException e) {
-                        errorCounter++;
-
-                        // Exit after 10 failed attempts
-                        if (errorCounter > 10) {
-                            return Optional.empty();
-                        }
-
-                        // Brief pause between attempts
-                        Timer.delay(0.1);
-                    }
-                }
-                break;
+        // If left pose is missing, return right pose (or empty if also null)
+        if (leftPose == null) {
+            return Optional.ofNullable(rightPose);
         }
 
-        // If no AprilTags were detected, return empty
-        if (aprilTagsOptional.isEmpty()) {
-            return Optional.empty();
+        // If right pose is missing, return left pose
+        if (rightPose == null) {
+            return Optional.ofNullable(leftPose);
         }
 
-        List<PhotonTrackedTarget> targets = aprilTagsOptional.get();
-
-        Pose3d targetPose = null;
-        double targetScore = Double.MAX_VALUE;
-
-        // Process each detected AprilTag
-        for (PhotonTrackedTarget tag : targets) {
-            // Check if this tag is valid for the selected target type
-            boolean isValidTag = (target == AlignmentTarget.kReef)
-                ? isReefTag(tag.getFiducialId())
-                : isCoralStationTag(tag.getFiducialId());
-
-            if (!isValidTag) {
-                continue;
-            }
-
-            // Get the tag's position in field coordinates
-            Optional<Pose3d> tagPoseOptional = fieldLayout.getTagPose(
-                tag.getFiducialId()
-            );
-
-            if (tagPoseOptional.isEmpty()) {
-                continue;
-            }
-
-            Pose3d tagPose = tagPoseOptional.get();
-
-            // Calculate a position 25cm in front of the tag
-            // and rotated 90 degrees relative to the tag's orientation
-            Pose3d potentialPose = new Pose3d(
-                tagPose.getX() - 0.25 * Math.cos(tagPose.getRotation().getZ()),
-                tagPose.getY() - 0.25 * Math.sin(tagPose.getRotation().getZ()),
-                tagPose.getZ(),
-                new Rotation3d(
-                    0,
-                    0,
-                    tagPose.getRotation().getZ() + Math.PI * 0.5
-                )
-            );
-
-            // Score this position based on distance from current robot position
-            // Lower scores (shorter distances) are preferred
-            double score = potentialPose
-                .getTranslation()
-                .getDistance(
-                    new Translation3d(currentPose.getX(), currentPose.getY(), 0)
-                );
-
-            // Keep track of the best (closest) alignment position
-            if (score < targetScore) {
-                targetPose = potentialPose;
-                targetScore = score;
-            }
-        }
-
-        // If no valid alignment position was found, return empty
-        if (targetPose == null) {
-            return Optional.empty();
-        }
-
-        // Create a path from current position to the target position
-        List<Waypoint> pathWaypoints = PathPlannerPath.waypointsFromPoses(
-            currentPose,
-            targetPose.toPose2d()
+        // Both poses exist, return their interpolation (50% blend)
+        return Optional.of(
+            leftEstimatedPose.estimatedPose.interpolate(
+                rightEstimatedPose.estimatedPose,
+                0.5
+            )
         );
-
-        // Define path constraints (speed, acceleration, etc.)
-        PathConstraints pathConstraints = new PathConstraints(
-            2.0, // Max velocity (m/s)
-            2.5, // Max acceleration (m/s²)
-            Math.PI, // Max angular velocity (rad/s)
-            2.0 * Math.PI // Max angular acceleration (rad/s²)
-        );
-
-        // Create the path with the calculated end position and rotation
-        PathPlannerPath alignmentPath = new PathPlannerPath(
-            pathWaypoints,
-            pathConstraints,
-            null,
-            new GoalEndState(0.0, targetPose.getRotation().toRotation2d())
-        );
-
-        // Generate and return the path-following command
-        try {
-            return Optional.of(AutoBuilder.followPath(alignmentPath));
-        } catch (AutoBuilderException e) {
-            return Optional.empty();
-        }
-    }
-
-    private boolean isReefTag(int id) {
-        switch (id) {
-            case 6, 7, 8, 9, 10, 11, 17, 18, 19, 20, 21, 22:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private boolean isCoralStationTag(int id) {
-        switch (id) {
-            case 1, 2, 12, 13:
-                return true;
-            default:
-                return false;
-        }
     }
 
     @Override
     public void periodic() {
+        // Collect all unread vision processing results from the cameras
         leftResults = leftLocalizer.getAllUnreadResults();
         rightResults = rightLocalizer.getAllUnreadResults();
-
         coralResults = coralCamera.getAllUnreadResults();
 
+        // Create a list to store valid pose estimations
         List<EstimatedRobotPose> estimatedPoses = new ArrayList<>();
 
+        // Process results from left camera if available
         if (!leftResults.isEmpty()) {
-            Optional<EstimatedRobotPose> leftEstimatedPose =
+            // Update pose estimator with most recent result from left camera
+            Optional<EstimatedRobotPose> leftEstimatedPoseOptional =
                 leftEstimator.update(leftResults.get(leftResults.size() - 1));
 
-            if (leftEstimatedPose.isPresent()) {
-                estimatedPoses.add(leftEstimatedPose.get());
+            // Add valid pose estimation to the collection
+            if (leftEstimatedPoseOptional.isPresent()) {
+                leftEstimatedPose = leftEstimatedPoseOptional.get();
+                estimatedPoses.add(leftEstimatedPose);
+                // Log the estimated pose.
+                Logger.recordOutput(
+                    "Vision/leftEstimatedPose",
+                    leftEstimatedPose.estimatedPose
+                );
             }
         }
 
+        // Process results from right camera if available
         if (!rightResults.isEmpty()) {
-            Optional<EstimatedRobotPose> rightEstimatedPose =
+            // Update pose estimator with most recent result from right camera
+            Optional<EstimatedRobotPose> rightEstimatedPoseOptional =
                 rightEstimator.update(
                     rightResults.get(rightResults.size() - 1)
                 );
 
-            if (rightEstimatedPose.isPresent()) {
-                estimatedPoses.add(rightEstimatedPose.get());
+            // Add valid pose estimation to the collection
+            if (rightEstimatedPoseOptional.isPresent()) {
+                rightEstimatedPose = rightEstimatedPoseOptional.get();
+                estimatedPoses.add(rightEstimatedPose);
+                Logger.recordOutput(
+                    "Vision/rightEstimatedPose",
+                    rightEstimatedPose.estimatedPose
+                );
             }
         }
 
+        // If we have valid pose estimations, submit them to the drive subsystem
         if (!estimatedPoses.isEmpty()) {
             DriveSubsystem.getInstance()
                 .submitVisionMeasurements(estimatedPoses);

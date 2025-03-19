@@ -4,6 +4,7 @@
 
 package ravenrobotics.robot;
 
+import com.pathplanner.lib.commands.PathfindingCommand;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
@@ -77,6 +78,8 @@ public class Robot extends LoggedRobot {
         Logger.start(); // Start logging data.
 
         robotContainer = new RobotContainer(); //Initialize the RobotContainer to setup everything.
+
+        PathfindingCommand.warmupCommand().schedule();
     }
 
     @Override

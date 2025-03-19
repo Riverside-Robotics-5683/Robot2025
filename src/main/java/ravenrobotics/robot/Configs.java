@@ -74,7 +74,7 @@ public class Configs {
             .maxVelocity(3200)
             .maxAcceleration(6000);
 
-        rollerConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(25);
+        rollerConfig.idleMode(IdleMode.kCoast).smartCurrentLimit(30);
 
         climberConfig
             .idleMode(IdleMode.kCoast)

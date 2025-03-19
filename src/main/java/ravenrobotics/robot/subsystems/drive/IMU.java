@@ -2,6 +2,8 @@ package ravenrobotics.robot.subsystems.drive;
 
 import com.studica.frc.AHRS;
 import com.studica.frc.AHRS.NavXComType;
+import edu.wpi.first.units.Units;
+import edu.wpi.first.units.measure.Angle;
 
 /**
  * Class for getting information from a Pigeon 2.0 IMU.
@@ -42,6 +44,10 @@ public class IMU {
      */
     public void setHeading(double heading) {
         imu.setAngleAdjustment(heading);
+    }
+
+    public void setHeading(Angle heading) {
+        imu.setAngleAdjustment(heading.in(Units.Degrees));
     }
 
     /**
