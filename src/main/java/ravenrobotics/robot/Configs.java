@@ -66,7 +66,7 @@ public class Configs {
             .closedLoopRampRate(0.25);
         elevatorConfig.closedLoop
             .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-            .pid(1.0, 0.02, 0.)
+            .pid(2.0, 0.05, 0.)
             .outputRange(-0.5, 1);
         //elevatorConfig.encoder.velocityConversionFactor(1.0 / 60.0);
 

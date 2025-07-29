@@ -179,6 +179,16 @@ public class DriveSubsystem extends SubsystemBase {
         return Rotation2d.fromDegrees(imuInputs.imuRawYaw);
     }
 
+    public Command resetPose2dCommand(Pose2d newPose) {
+        return this.runOnce(() -> {
+                estimatedPose.resetPose(new Pose3d(newPose));
+            });
+    }
+
+    public Field2d getFieldWidget() {
+        return fieldWidget;
+    }
+
     /**
      * Get the robot's current heading from the drive base and PhotonVision.
      *
@@ -204,17 +214,36 @@ public class DriveSubsystem extends SubsystemBase {
         return estimatedPose.getEstimatedPosition();
     }
 
+    public double getXAccel() {
+        return imuInputs.imuRawXAccel;
+    }
+
     /**
      * Reset the estimated position of the robot.
      *
      * @param pose The position of the robot as a Pose2d.
      */
     public void resetPose2d(Pose2d pose) {
-        // Reset the estimated pose.
-        estimatedPose.resetPose(new Pose3d(pose));
+        var allianceOptional = DriverStation.getAlliance();
 
-        // Reset the IMU heading to the pose's heading to fix field-relative issues.
-        imu.setHeading(pose.getRotation().getDegrees());
+        Rotation2d rotation = pose.getRotation();
+
+        if (allianceOptional.isPresent()) {
+            if (allianceOptional.get() == Alliance.Blue) {
+                rotation = rotation.rotateBy(Rotation2d.kPi);
+            }
+        }
+
+        estimatedPose.resetPose(
+            new Pose3d(
+                pose.getX(),
+                pose.getY(),
+                0,
+                new Rotation3d(pose.getRotation())
+            )
+        );
+
+        imu.setHeading(rotation.getDegrees());
     }
 
     /**
@@ -249,6 +278,13 @@ public class DriveSubsystem extends SubsystemBase {
         return this.runOnce(() -> {
                 imu.resetHeading();
                 estimatedPose.resetRotation(new Rotation3d());
+            });
+    }
+
+    public Command resetHeading(double angle) {
+        return this.runOnce(() -> {
+                imu.setHeading(angle);
+                estimatedPose.resetRotation(new Rotation3d(0, 0, angle));
             });
     }
 

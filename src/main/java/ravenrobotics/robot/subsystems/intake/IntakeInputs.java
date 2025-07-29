@@ -9,4 +9,6 @@ public class IntakeInputs {
 
     public double rollerVoltage = 0.0;
     public double rollerCurrent = 0.0;
+
+    public boolean coralSensor = false;
 }

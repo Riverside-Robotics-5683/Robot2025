@@ -4,16 +4,29 @@
 
 package ravenrobotics.robot;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.pathplanner.lib.commands.PathfindingCommand;
+import com.pathplanner.lib.path.PathPlannerPath;
+import com.pathplanner.lib.pathfinding.Pathfinding;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.PowerDistribution;
 import edu.wpi.first.wpilibj.PowerDistribution.ModuleType;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
+import ravenrobotics.robot.subsystems.drive.DriveSubsystem;
+import ravenrobotics.robot.util.LocalADStarAK;
 
 /**
  * The main robot class for running a robot (outside of Main).
@@ -27,10 +40,15 @@ public class Robot extends LoggedRobot {
 
     private final RobotContainer robotContainer;
 
+    private String selectedAuto = "";
+
     /**
      * Creates an instance of the Robot class.
      */
     public Robot() {
+        //Setup custom Pathfinder for AdvantageKit compatibility.
+        Pathfinding.setPathfinder(new LocalADStarAK());
+
         Logger.recordMetadata("ProjectName", BuildConstants.MAVEN_NAME); // Record the project name in the log file
         // metadata.
         Logger.recordMetadata("BuildDate", BuildConstants.BUILD_DATE); // Record the build date of the project in the log
@@ -79,6 +97,7 @@ public class Robot extends LoggedRobot {
 
         robotContainer = new RobotContainer(); //Initialize the RobotContainer to setup everything.
 
+        // Run the pathfinding warmup command so there aren't significant delays when running the first one.
         PathfindingCommand.warmupCommand().schedule();
     }
 
@@ -112,13 +131,91 @@ public class Robot extends LoggedRobot {
     public void disabledInit() {}
 
     @Override
-    public void disabledPeriodic() {}
+    public void disabledPeriodic() {
+        // Get the name of the currently selected autonomous routine
+        String currentAuto = robotContainer.getAutoCommand().getName();
+
+        // Only update visualization if the selected auto has changed
+        if (currentAuto != selectedAuto) {
+            selectedAuto = currentAuto;
+
+            // Check if the AutoBuilder is configured
+            if (AutoBuilder.isConfigured()) {
+                // If the selected auto name exists in the available autos
+                if (AutoBuilder.getAllAutoNames().contains(currentAuto)) {
+                    List<PathPlannerPath> autoPaths;
+                    // Create a list to hold the poses along the path for visualization
+                    List<Pose2d> autoPoses = new ArrayList<>();
+
+                    try {
+                        // Retrieve the path group associated with the current auto
+                        autoPaths = PathPlannerAuto.getPathGroupFromAutoFile(
+                            currentAuto
+                        );
+                    } catch (Exception e) {
+                        // Exit if we can't load the paths
+                        return;
+                    }
+
+                    // Get the current alliance color
+                    var allianceOptional = DriverStation.getAlliance();
+
+                    // If alliance information is available
+                    if (allianceOptional.isPresent()) {
+                        // If we're on the red alliance, flip all paths to mirror them
+                        if (allianceOptional.get() == Alliance.Red) {
+                            List<PathPlannerPath> flippedPaths =
+                                new ArrayList<>();
+
+                            // Flip each path and add it to the new list
+                            for (var path : autoPaths) {
+                                var flippedPath = path.flipPath();
+                                flippedPaths.add(flippedPath);
+                            }
+
+                            // Replace original paths with flipped ones
+                            autoPaths = flippedPaths;
+                        }
+                    }
+
+                    // Extract all poses from each path for visualization
+                    for (PathPlannerPath path : autoPaths) {
+                        autoPoses.addAll(
+                            path
+                                .getAllPathPoints()
+                                .stream()
+                                // Convert each path point to a Pose2d (position with zero rotation)
+                                .map(point ->
+                                    new Pose2d(
+                                        point.position.getX(),
+                                        point.position.getY(),
+                                        new Rotation2d()
+                                    )
+                                )
+                                .collect(Collectors.toList())
+                        );
+                    }
+
+                    // Update the field widget with the complete set of poses for the path
+                    DriveSubsystem.getInstance()
+                        .getFieldWidget()
+                        .getObject("autoPath")
+                        .setPoses(autoPoses);
+                } else {
+                    // If the current auto name isn't valid/a PathPlanner auto, clear the visualization
+                    // by setting it to a default pose
+                    DriveSubsystem.getInstance()
+                        .getFieldWidget()
+                        .getObject("autoPath")
+                        .setPose(new Pose2d());
+                }
+            }
+        }
+    }
 
     @Override
     public void testInit() {
-        var command = robotContainer.getTestCommand();
-
-        command.schedule();
+        robotContainer.configureTestBindings();
     }
 
     @Override

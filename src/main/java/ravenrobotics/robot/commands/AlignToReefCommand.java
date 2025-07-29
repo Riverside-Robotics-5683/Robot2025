@@ -49,14 +49,20 @@ public class AlignToReefCommand extends Command {
     /** ID of the AprilTag that the robot should align to. -1 indicates not yet set. */
     private double priorityTagId = -1;
 
+    private double xDistance = 1;
+    private double xAccel = Double.MAX_VALUE;
+    private boolean doQuit = false;
+
+    private double accelCounter = 0;
+
     /** PID controller for X-axis positioning (forward/backward) */
-    private PIDController xController = new PIDController(10.0, 0.0, 0.0);
+    private PIDController xController = new PIDController(3.4, 0.0, 0.0);
 
     /** PID controller for Y-axis positioning (left/right) */
-    private PIDController yController = new PIDController(10.0, 0.0, 0.0);
+    private PIDController yController = new PIDController(2.0, 0.0, 0.0);
 
     /** PID controller for Z-axis rotation (heading) */
-    private PIDController zController = new PIDController(1.5, 0.0, 0.0);
+    private PIDController zController = new PIDController(0.1, 0.0, 0.0);
 
     /**
      * Creates a new AlignToReefCommand for aligning to an april tag on the reef.
@@ -71,6 +77,17 @@ public class AlignToReefCommand extends Command {
         addRequirements(driveSubsystem);
     }
 
+    public AlignToReefCommand(int target) {
+        this.visionSubsystem = VisionSubsystem.getInstance();
+        this.driveSubsystem = DriveSubsystem.getInstance();
+
+        this.priorityTagId = target;
+
+        zController.enableContinuousInput(-180, 180);
+
+        addRequirements(driveSubsystem);
+    }
+
     @Override
     public void initialize() {
         // Reset acceleration limiters to start from zero
@@ -80,7 +97,7 @@ public class AlignToReefCommand extends Command {
         // Set tolerances for each PID controller to determine when target is reached
         xController.setTolerance(0.02);
         yController.setTolerance(0.02);
-        zController.setTolerance(0.5);
+        zController.setTolerance(1);
 
         // Reset accumulated errors in PID controllers
         xController.reset();
@@ -126,6 +143,19 @@ public class AlignToReefCommand extends Command {
         // Exit if this isn't the tag we're focusing on
         if (biggestTarget.getFiducialId() != priorityTagId) return;
 
+        if (accelCounter < 25) {
+            accelCounter++;
+        } else {
+            xAccel = driveSubsystem.getXAccel();
+        }
+
+        Logger.recordOutput("AlignmentCommand/xAcceleration", xAccel);
+
+        if (xAccel < 0.5) {
+            doQuit = true;
+            return;
+        }
+
         // Get the pose of the detected AprilTag from the field layout
         var tagPoseOptional = visionSubsystem
             .getFieldLayout()
@@ -139,13 +169,15 @@ public class AlignToReefCommand extends Command {
             .get()
             .getRotation()
             .toRotation2d()
-            .rotateBy(new Rotation2d(Math.PI / 2.0));
+            .rotateBy(Rotation2d.kCW_Pi_2);
 
         // Calculate X velocity using PID controller (negative for correct direction)
         double velX = -xController.calculate(
             biggestTarget.getBestCameraToTarget().getX(),
-            0.35 // Target distance in X direction
+            0.32 // Target distance in X direction
         );
+
+        xDistance = biggestTarget.getBestCameraToTarget().getX();
 
         // Calculate Y velocity using PID controller (negative for correct direction)
         double velY = -yController.calculate(
@@ -160,7 +192,7 @@ public class AlignToReefCommand extends Command {
         );
         Logger.recordOutput(
             "AlignmentCommand/targetTheta",
-            tagAngle.getDegrees()
+            Math.abs(tagAngle.getDegrees())
         );
         Logger.recordOutput(
             "AlignmentCommand/currentX",
@@ -174,18 +206,18 @@ public class AlignToReefCommand extends Command {
         // Calculate rotation velocity using PID controller
         double velTheta = -zController.calculate(
             driveSubsystem.getRawHeading().getDegrees(),
-            tagAngle.getDegrees()
+            Math.abs(tagAngle.getDegrees())
         );
 
         // If already close to the target angle, stop rotating
-        if (
-            driveSubsystem.getRawHeading().getDegrees() <
-                tagAngle.getDegrees() + 0.5 &&
-            driveSubsystem.getRawHeading().getDegrees() >
-            tagAngle.getDegrees() - 0.5
-        ) {
-            velTheta = 0;
-        }
+        // if (
+        //     driveSubsystem.getRawHeading().getDegrees() <
+        //         tagAngle.getDegrees() + 0.5 &&
+        //     driveSubsystem.getRawHeading().getDegrees() >
+        //     tagAngle.getDegrees() - 0.5
+        // ) {
+        //     velTheta = 0;
+        // }
 
         // Apply acceleration limits to the raw PID outputs
         Translation2d PIDSpeed = new Translation2d(
@@ -225,9 +257,10 @@ public class AlignToReefCommand extends Command {
 
         // Command is finished when all three axes are at their setpoints
         return (
-            (xController.atSetpoint() &&
+            (xDistance < 0.35 &&
                 yController.atSetpoint() &&
-                zController.atSetpoint())
+                zController.atSetpoint()) ||
+            doQuit
         );
     }
 }

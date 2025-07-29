@@ -3,15 +3,25 @@ package ravenrobotics.robot;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.ParallelCommandGroup;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Direction;
 import ravenrobotics.robot.Constants.DSConstants;
+import ravenrobotics.robot.Constants.ElevatorConstants;
 import ravenrobotics.robot.commands.AlignToReefCommand;
+import ravenrobotics.robot.commands.AutoFactory;
+import ravenrobotics.robot.commands.AutoFactory.PathfindingDestinations;
 import ravenrobotics.robot.commands.DriveCommand;
 import ravenrobotics.robot.commands.MoveAuto;
 import ravenrobotics.robot.subsystems.drive.DriveSubsystem;
@@ -35,16 +45,10 @@ public class RobotContainer {
         DSConstants.DEFAULT_PROFILE,
         () -> -driverController.getLeftY(), // Forward/backward.
         () -> -driverController.getLeftX(), // Left/right.
-        () -> -driverController.getRightX()
-    ); // Rotation.
+        () -> -driverController.getRightX() // Rotation.
+    );
 
-    private final Command elevatorTestCommand = ElevatorSubsystem.getInstance()
-        .rawElevatorPower(() -> -systemsController.getLeftY());
-
-    private final Command station2L1 = new ParallelCommandGroup(
-        new MoveAuto(1.5, 1.5),
-        ElevatorSubsystem.getInstance().setElevatorPosition(ElevatorPosition.L1)
-    ).andThen(IntakeSubsystem.getInstance().outtakeCoralL1());
+    private final AlignToReefCommand reefCommand = new AlignToReefCommand();
 
     private SendableChooser<Integer> modeChooser = new SendableChooser<
         Integer
@@ -87,15 +91,15 @@ public class RobotContainer {
 
         autoChooser.setDefaultOption(
             "Move Forward Basic",
-            new MoveAuto(Units.feetToMeters(4), 2.5)
+            DriveSubsystem.getInstance()
+                .resetHeading(180)
+                .andThen(new MoveAuto(Units.feetToMeters(4), 2.5))
         );
-
-        autoChooser.addOption("Station 2 L1 (no PathPlanner)", station2L1);
 
         SmartDashboard.putData("Auto Chooser", autoChooser);
     }
 
-    public Command getTestCommand() {
+    public void configureTestBindings() {
         systemsController
             .back()
             .onTrue(DriveSubsystem.getInstance().resetHeading());
@@ -127,8 +131,6 @@ public class RobotContainer {
             .onTrue(
                 ElevatorSubsystem.getInstance().sysIdDynamic(Direction.kReverse)
             );
-
-        return elevatorTestCommand;
     }
 
     public Command getAutoCommand() {
@@ -212,7 +214,10 @@ public class RobotContainer {
             .start()
             .onTrue(DriveSubsystem.getInstance().resetPoseEstimationToVision());
 
-        driverController.x().onTrue(new AlignToReefCommand());
+        driverController.x().onTrue(reefCommand);
+        driverController
+            .b()
+            .onTrue(new InstantCommand(() -> reefCommand.cancel()));
 
         // Systems set elevator to L4.
         systemsController
@@ -248,12 +253,19 @@ public class RobotContainer {
                 ElevatorSubsystem.getInstance()
                     .setElevatorPosition(ElevatorPosition.CLOSED)
             );
+
         systemsController
-            .leftBumper()
-            .onTrue(
-                ElevatorSubsystem.getInstance()
-                    .setElevatorPosition(ElevatorPosition.FEED)
-            );
+            .back()
+            .onTrue(ElevatorSubsystem.getInstance().stopElevatorCommmand());
+        systemsController
+            .start()
+            .onTrue(IntakeSubsystem.getInstance().stopIntakeCommand());
+        // systemsController
+        //     .leftBumper()
+        //     .onTrue(
+        //         ElevatorSubsystem.getInstance()
+        //             .setElevatorPosition(ElevatorPosition.FEED)
+        //     );
 
         systemsController
             .leftTrigger(0.5)

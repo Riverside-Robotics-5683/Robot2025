@@ -11,13 +11,26 @@
               {
                 "type": "path",
                 "data": {
-                  "pathName": "Station 3 to Reef 4"
+                  "pathName": "Left Start to Reef 2 Left"
                 }
               },
               {
-                "type": "named",
+                "type": "sequential",
                 "data": {
-                  "name": "elevatorL1"
+                  "commands": [
+                    {
+                      "type": "wait",
+                      "data": {
+                        "waitTime": 1.5
+                      }
+                    },
+                    {
+                      "type": "named",
+                      "data": {
+                        "name": "elevatorL4"
+                      }
+                    }
+                  ]
                 }
               }
             ]
@@ -26,25 +39,13 @@
         {
           "type": "named",
           "data": {
-            "name": "intakeL1"
+            "name": "scoreCoral"
           }
         },
         {
-          "type": "wait",
+          "type": "parallel",
           "data": {
-            "waitTime": 1.5
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "scoreCoralL1"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Reef 4 to Bottom Coral"
+            "commands": []
           }
         }
       ]

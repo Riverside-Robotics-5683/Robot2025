@@ -4,13 +4,15 @@ import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkFlex;
+import edu.wpi.first.wpilibj.DigitalInput;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
+import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import org.littletonrobotics.junction.Logger;
 import ravenrobotics.robot.Configs;
 import ravenrobotics.robot.Constants.IntakeConstants;
-import ravenrobotics.robot.subsystems.elevator.ElevatorSubsystem;
+import ravenrobotics.robot.util.CommandLogger;
 
 public class IntakeSubsystem extends SubsystemBase {
 
@@ -23,8 +25,13 @@ public class IntakeSubsystem extends SubsystemBase {
     // Encoder to track the roller motor's position and velocity
     private final RelativeEncoder rollerEncoder = rollerMotor.getEncoder();
 
+    // Sensor for detecting when the coral is/isn't in the intake.
+    private final DigitalInput coralSensor = new DigitalInput(0);
+
     // Logged inputs for telemetry and debugging
     private IntakeInputsAutoLogged intakeInputs = new IntakeInputsAutoLogged();
+
+    private Command activeCommand;
 
     // Singleton instance
     private static IntakeSubsystem instance;
@@ -62,16 +69,13 @@ public class IntakeSubsystem extends SubsystemBase {
     }
 
     /**
-     * Determines if a coral (game piece) is in the intake
-     * by checking motor current and velocity.
+     * Determines if a coral (game piece) is in the intake.
      *
      * @return true if coral is detected in the intake
      */
     public boolean isCoralInIntake() {
-        return (
-            rollerMotor.getOutputCurrent() > 10 &&
-            Math.abs(rollerEncoder.getVelocity()) < 800
-        );
+        // The sensor pulls high by default, which the DigitalOutput class interprets as true, hence the logic below :)
+        return coralSensor.get() ? false : true;
     }
 
     /**
@@ -92,9 +96,32 @@ public class IntakeSubsystem extends SubsystemBase {
      * @return Command that runs the rollers to intake a coral
      */
     public Command intakeCoral() {
-        return this.runOnce(() -> setRollerPower(-0.5))
-            .andThen(new WaitCommand(0.255))
-            .finallyDo(() -> setRollerPower(0));
+        activeCommand = CommandLogger.logCommand(
+            (this.runOnce(() -> setRollerPower(-0.1))
+                    .andThen(new WaitUntilCommand(() -> isCoralInIntake()))
+                    .andThen(
+                        this.runOnce(() -> {
+                                rollerMotor.stopMotor();
+                                rollerMotor.set(0.1);
+                            })
+                            .andThen(new WaitCommand(0.15))
+                            .andThen(
+                                this.runOnce(() -> rollerMotor.stopMotor())
+                            )
+                    )).withDeadline(new WaitCommand(2)),
+            "Intake Coral"
+        );
+
+        return activeCommand;
+    }
+
+    public Command stopIntakeCommand() {
+        return this.runOnce(() -> {
+                if (activeCommand != null) {
+                    activeCommand.cancel();
+                }
+                rollerMotor.stopMotor();
+            });
     }
 
     /**
@@ -104,14 +131,17 @@ public class IntakeSubsystem extends SubsystemBase {
      * @return Command that runs the rollers to outtake a coral
      */
     public Command outtakeCoral() {
-        if (!ElevatorSubsystem.getInstance().isElevatorAtL1()) {
-            return this.runOnce(() -> setRollerPower(-1))
-                .andThen(new WaitCommand(0.75))
-                .finallyDo(() -> setRollerPower(0));
-        } else {
-            System.out.println("L1 Out");
-            return outtakeCoralL1();
-        }
+        activeCommand = CommandLogger.logCommand(
+            (this.runOnce(() -> setRollerPower(-1))
+                    .andThen(new WaitCommand(0.1))
+                    .andThen(new WaitUntilCommand(() -> !isCoralInIntake()))
+                    .andThen(
+                        this.runOnce(() -> rollerMotor.stopMotor())
+                    )).withDeadline(new WaitCommand(2)),
+            "Outtake Coral"
+        );
+
+        return activeCommand;
     }
 
     /**
@@ -131,6 +161,8 @@ public class IntakeSubsystem extends SubsystemBase {
 
         intakeInputs.rollerVoltage = rollerMotor.getBusVoltage();
         intakeInputs.rollerCurrent = rollerMotor.getOutputCurrent();
+
+        intakeInputs.coralSensor = isCoralInIntake();
 
         Logger.processInputs("Intake", intakeInputs);
     }

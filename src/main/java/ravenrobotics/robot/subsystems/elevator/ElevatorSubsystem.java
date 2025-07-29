@@ -17,11 +17,13 @@ import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.WaitUntilCommand;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import java.util.function.DoubleSupplier;
 import org.littletonrobotics.junction.Logger;
 import ravenrobotics.robot.Constants.ElevatorConstants;
+import ravenrobotics.robot.util.CommandLogger;
 
 /**
  * Elevator subsystem or the Elevator
@@ -50,6 +52,8 @@ public class ElevatorSubsystem extends SubsystemBase {
 
     // Target position for the elevator in encoder units
     private double targetPosition;
+
+    private Command activeCommand;
 
     // Structure to log elevator data
     private ElevatorInputsAutoLogged elevatorInputs;
@@ -149,6 +153,8 @@ public class ElevatorSubsystem extends SubsystemBase {
 
         // Calculate feedforward term to compensate for gravity
         double arbFF = elevatorFeedforward.calculate(leftEncoder.getVelocity());
+
+        Logger.recordOutput("Elevator/LeftCommandedPosition", position);
 
         // Set the reference position with feedforward
         elevatorController.setReference(
@@ -255,9 +261,26 @@ public class ElevatorSubsystem extends SubsystemBase {
      * @return Command to move to position
      */
     public Command setElevatorPosition(ElevatorPosition position) {
-        return this.runOnce(() -> setPosition(position)).andThen(
-                new WaitUntilCommand(() -> isElevatorAtPosition(2))
-            );
+        activeCommand = CommandLogger.logCommand(
+            this.runOnce(() -> setPosition(position)).andThen(
+                    new WaitUntilCommand(() -> isElevatorAtPosition(2))
+                        .raceWith(new WaitCommand(5))
+                        .andThen(rawElevatorPower(0))
+                ),
+            "Elevator " + position.toString()
+        );
+
+        return activeCommand;
+    }
+
+    public Command stopElevatorCommmand() {
+        return this.runOnce(() -> {
+                if (activeCommand != null) {
+                    activeCommand.cancel();
+                }
+
+                leftMotor.stopMotor();
+            });
     }
 
     /**
